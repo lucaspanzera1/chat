@@ -431,15 +431,10 @@
             try {
                 let date;
                 if (msg.timestamp) {
-                    // Tentar parse direto
                     date = new Date(msg.timestamp);
-                    
-                    // Se for inválido, tentar adicionar Z
                     if (isNaN(date.getTime())) {
                         date = new Date(msg.timestamp + 'Z');
                     }
-                    
-                    // Se ainda for inválido, usar hora atual
                     if (isNaN(date.getTime())) {
                         date = new Date();
                     }
@@ -461,18 +456,26 @@
                 });
             }
 
+            // Avatar padrão ou do usuário
+            const avatarUrl = msg.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(msg.username)}&background=1a1a1a&color=fff&size=40`;
+
             if (msg.type === 'system' || msg.type === 'join' || msg.type === 'leave') {
                 div.className = 'flex justify-center my-2 px-4';
                 div.innerHTML = `<span class="text-xs text-cyber-dim border border-cyber-border px-2 py-1 bg-cyber-bg/50">${msg.content}</span>`;
             } else {
-                div.className = `flex flex-col ${isMe ? 'items-end pr-4' : 'items-start pl-4'} animate-fade-in`;
+                div.className = `flex gap-3 ${isMe ? 'flex-row-reverse pr-4' : 'pl-4'} animate-fade-in`;
                 div.innerHTML = `
-                    <div class="flex items-baseline gap-2 mb-1">
-                        <span class="text-xs font-bold ${isMe ? 'text-green-500' : 'text-blue-400'}">${msg.username}</span>
-                        <span class="text-[10px] text-cyber-dim">${time}</span>
-                    </div>
-                    <div class="max-w-[80%] p-3 rounded-sm border ${isMe ? 'border-green-500/30 bg-green-500/5' : 'border-cyber-border bg-cyber-card'}">
-                        <p class="leading-relaxed break-words">${msg.content}</p>
+                    <img src="${avatarUrl}" alt="${msg.username}" 
+                         class="w-10 h-10 rounded-full border border-cyber-border flex-shrink-0 object-cover"
+                         onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(msg.username)}&background=1a1a1a&color=fff&size=40'">
+                    <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'}">
+                        <div class="flex items-baseline gap-2 mb-1">
+                            <span class="text-xs font-bold ${isMe ? 'text-green-500' : 'text-blue-400'}">${msg.username}</span>
+                            <span class="text-[10px] text-cyber-dim">${time}</span>
+                        </div>
+                        <div class="max-w-[80%] p-3 rounded-sm border ${isMe ? 'border-green-500/30 bg-green-500/5' : 'border-cyber-border bg-cyber-card'}">
+                            <p class="leading-relaxed break-words">${msg.content}</p>
+                        </div>
                     </div>
                 `;
             }

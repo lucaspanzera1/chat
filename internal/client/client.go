@@ -24,12 +24,13 @@ type HubInterface interface {
 }
 
 type Client struct {
-	Hub      HubInterface
-	Conn     *websocket.Conn
-	Send     chan models.Message
-	Username string
-	UserID   string
-	RoomID   string
+	Hub       HubInterface
+	Conn      *websocket.Conn
+	Send      chan models.Message
+	Username  string
+	UserID    string
+	RoomID    string
+	AvatarURL string
 }
 
 func (c *Client) GetRoomID() string {
@@ -89,6 +90,7 @@ func (c *Client) ReadPump(broadcast chan<- models.Message, unregister Unregister
 			ID:        uuid.New().String(),
 			RoomID:    c.RoomID,
 			Username:  c.Username,
+			AvatarURL: c.AvatarURL,
 			Content:   incoming.Content,
 			Timestamp: time.Now(),
 			Type:      "message",

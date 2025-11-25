@@ -66,13 +66,19 @@ func (wsh *WSHandler) ServeWS(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	avatarURL := ""
+	if user.AvatarURL != nil {
+		avatarURL = *user.AvatarURL
+	}
+
 	c := &client.Client{
-		Hub:      wsh.hub,
-		Conn:     conn,
-		Send:     make(chan models.Message, 256),
-		Username: user.Username,
-		UserID:   user.ID,
-		RoomID:   roomID,
+		Hub:       wsh.hub,
+		Conn:      conn,
+		Send:      make(chan models.Message, 256),
+		Username:  user.Username,
+		UserID:    user.ID,
+		RoomID:    roomID,
+		AvatarURL: avatarURL,
 	}
 
 	if err := wsh.userRepo.SetOnline(context.Background(), user.ID); err != nil {

@@ -17,18 +17,19 @@ func NewMessageRepository(db *pgxpool.Pool) *MessageRepository {
 }
 
 func (r *MessageRepository) Create(ctx context.Context, msg *models.Message, userID string) error {
-	query := `INSERT INTO messages (id, room_id, user_id, username, content, type, created_at) 
-			  VALUES ($1, $2, $3, $4, $5, $6, $7)`
+	query := `INSERT INTO messages (id, room_id, user_id, username, content, type, avatar_url, created_at) 
+			  VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
 
-	_, err := r.db.Exec(ctx, query, msg.ID, msg.RoomID, userID, msg.Username, msg.Content, msg.Type, msg.Timestamp)
+	_, err := r.db.Exec(ctx, query, msg.ID, msg.RoomID, userID, msg.Username, msg.Content, msg.Type, msg.AvatarURL, msg.Timestamp)
 	return err
 }
 
 func (r *MessageRepository) GetRecent(ctx context.Context, limit int) ([]models.Message, error) {
-	query := `SELECT id, COALESCE(room_id, '00000000-0000-0000-0000-000000000001'), username, content, type, created_at
-			  FROM messages 
-			  WHERE room_id = '00000000-0000-0000-0000-000000000001' OR room_id IS NULL
-			  ORDER BY created_at DESC 
+	query := `SELECT m.id, COALESCE(m.room_id, '00000000-0000-0000-0000-000000000001'), m.username, m.content, m.type, m.created_at, COALESCE(m.avatar_url, u.avatar_url, '')
+			  FROM messages m
+			  LEFT JOIN users u ON m.username = u.username
+			  WHERE m.room_id = '00000000-0000-0000-0000-000000000001' OR m.room_id IS NULL
+			  ORDER BY m.created_at DESC 
 			  LIMIT $1`
 
 	rows, err := r.db.Query(ctx, query, limit)
@@ -41,7 +42,7 @@ func (r *MessageRepository) GetRecent(ctx context.Context, limit int) ([]models.
 	var messages []models.Message
 	for rows.Next() {
 		var msg models.Message
-		if err := rows.Scan(&msg.ID, &msg.Username, &msg.Content, &msg.Type, &msg.Timestamp); err != nil {
+		if err := rows.Scan(&msg.ID, &msg.RoomID, &msg.Username, &msg.Content, &msg.Type, &msg.Timestamp, &msg.AvatarURL); err != nil {
 			log.Printf("Erro ao fazer scan: %v", err)
 			return nil, err
 		}
@@ -61,10 +62,11 @@ func (r *MessageRepository) GetRecent(ctx context.Context, limit int) ([]models.
 }
 
 func (r *MessageRepository) GetRecentByRoom(ctx context.Context, roomID string, limit int) ([]models.Message, error) {
-	query := `SELECT id, COALESCE(room_id, '00000000-0000-0000-0000-000000000001'), username, content, type, created_at
-			  FROM messages 
-			  WHERE room_id = $1
-			  ORDER BY created_at DESC 
+	query := `SELECT m.id, COALESCE(m.room_id, '00000000-0000-0000-0000-000000000001'), m.username, m.content, m.type, m.created_at, COALESCE(m.avatar_url, u.avatar_url, '')
+			  FROM messages m
+			  LEFT JOIN users u ON m.username = u.username
+			  WHERE m.room_id = $1
+			  ORDER BY m.created_at DESC 
 			  LIMIT $2`
 
 	rows, err := r.db.Query(ctx, query, roomID, limit)
@@ -76,7 +78,7 @@ func (r *MessageRepository) GetRecentByRoom(ctx context.Context, roomID string, 
 	var messages []models.Message
 	for rows.Next() {
 		var msg models.Message
-		if err := rows.Scan(&msg.ID, &msg.RoomID, &msg.Username, &msg.Content, &msg.Type, &msg.Timestamp); err != nil {
+		if err := rows.Scan(&msg.ID, &msg.RoomID, &msg.Username, &msg.Content, &msg.Type, &msg.Timestamp, &msg.AvatarURL); err != nil {
 			return nil, err
 		}
 		messages = append(messages, msg)

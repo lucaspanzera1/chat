@@ -222,3 +222,87 @@ func (h *HTTPHandler) GetGroupMembers(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(members)
 }
+
+func (h *HTTPHandler) SetUsername(w http.ResponseWriter, r *http.Request) {
+	token := r.Header.Get("Authorization")
+	if token == "" {
+		http.Error(w, "Token não fornecido", http.StatusUnauthorized)
+		return
+	}
+
+	claims, err := auth.ValidateToken(token)
+	if err != nil {
+		http.Error(w, "Token inválido", http.StatusUnauthorized)
+		return
+	}
+
+	var req struct {
+		Username string `json:"username"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Dados inválidos", http.StatusBadRequest)
+		return
+	}
+
+	username := req.Username
+	if len(username) < 3 || len(username) > 20 {
+		http.Error(w, "Username deve ter entre 3 e 20 caracteres", http.StatusBadRequest)
+		return
+	}
+
+	exists, err := h.userRepo.UsernameExists(r.Context(), username)
+	if err != nil {
+		http.Error(w, "Erro ao verificar username", http.StatusInternalServerError)
+		return
+	}
+	if exists {
+		http.Error(w, "Username já está em uso", http.StatusConflict)
+		return
+	}
+
+	if err := h.userRepo.SetUsername(r.Context(), claims.UserID, username); err != nil {
+		http.Error(w, "Erro ao salvar username", http.StatusInternalServerError)
+		return
+	}
+
+	user, err := h.userRepo.GetByID(r.Context(), claims.UserID)
+	if err != nil {
+		http.Error(w, "Erro ao buscar usuário", http.StatusInternalServerError)
+		return
+	}
+
+	newToken, err := auth.GenerateToken(user)
+	if err != nil {
+		http.Error(w, "Erro ao gerar token", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(models.AuthResponse{
+		Token: newToken,
+		User:  *user,
+	})
+}
+
+func (h *HTTPHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
+	token := r.Header.Get("Authorization")
+	if token == "" {
+		http.Error(w, "Token não fornecido", http.StatusUnauthorized)
+		return
+	}
+
+	claims, err := auth.ValidateToken(token)
+	if err != nil {
+		http.Error(w, "Token inválido", http.StatusUnauthorized)
+		return
+	}
+
+	user, err := h.userRepo.GetByID(r.Context(), claims.UserID)
+	if err != nil || user == nil {
+		http.Error(w, "Usuário não encontrado", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(user)
+}

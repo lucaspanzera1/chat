@@ -94,9 +94,18 @@ func main() {
 	http.HandleFunc("/api/groups", httpHandler.GetUserGroups)
 	http.HandleFunc("/api/group/members", httpHandler.GetGroupMembers)
 
-	// Google OAuth routes
 	http.HandleFunc("/api/auth/google", oauthHandler.GoogleLogin)
 	http.HandleFunc("/api/auth/google/callback", oauthHandler.GoogleCallback)
+
+	http.HandleFunc("/api/user/username", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		httpHandler.SetUsername(w, r)
+	})
+
+	http.HandleFunc("/api/user/me", httpHandler.GetCurrentUser)
 
 	fs := http.FileServer(http.Dir("web"))
 	http.Handle("/", fs)

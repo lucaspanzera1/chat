@@ -9,8 +9,8 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
-	"strings"
 	"sync"
 	"time"
 
@@ -55,7 +55,6 @@ func NewOAuthHandler(userRepo *repository.UserRepository) *OAuthHandler {
 		stateStore: make(map[string]time.Time),
 	}
 
-	// Limpar states expirados a cada 5 minutos
 	go handler.cleanupStates()
 
 	return handler
@@ -134,7 +133,6 @@ func (h *OAuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Buscar informações do usuário
 	client := h.config.Client(context.Background(), token)
 	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
 	if err != nil {
@@ -158,15 +156,13 @@ func (h *OAuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Buscar ou criar usuário
-	user, err := h.findOrCreateUser(r.Context(), googleUser)
+	user, isNewUser, err := h.findOrCreateUser(r.Context(), googleUser)
 	if err != nil {
 		log.Printf("Erro ao criar/buscar usuário: %v", err)
 		http.Redirect(w, r, "/auth.html?error=create_user", http.StatusTemporaryRedirect)
 		return
 	}
 
-	// Gerar JWT
 	jwtToken, err := auth.GenerateToken(user)
 	if err != nil {
 		log.Printf("Erro ao gerar token: %v", err)
@@ -174,55 +170,47 @@ func (h *OAuthHandler) GoogleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Redirecionar com token
+	if isNewUser || user.Username == "" {
+		redirectURL := fmt.Sprintf("/setup.html?token=%s&email=%s&avatar=%s",
+			jwtToken,
+			url.QueryEscape(user.Email),
+			url.QueryEscape(googleUser.Picture))
+		http.Redirect(w, r, redirectURL, http.StatusTemporaryRedirect)
+		return
+	}
+
 	redirectURL := fmt.Sprintf("/auth.html?token=%s&user=%s", jwtToken, user.Username)
 	http.Redirect(w, r, redirectURL, http.StatusTemporaryRedirect)
 }
 
-func (h *OAuthHandler) findOrCreateUser(ctx context.Context, googleUser GoogleUserInfo) (*models.User, error) {
-	// 1. Verificar se já existe usuário com este Google ID
+func (h *OAuthHandler) findOrCreateUser(ctx context.Context, googleUser GoogleUserInfo) (*models.User, bool, error) {
+
 	user, err := h.userRepo.GetByGoogleID(ctx, googleUser.ID)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	if user != nil {
-		return user, nil
+		return user, false, nil
 	}
 
-	// 2. Verificar se existe usuário com este email
 	user, err = h.userRepo.GetByEmail(ctx, googleUser.Email)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	if user != nil {
-		// Vincular conta Google ao usuário existente
-		if err := h.userRepo.LinkGoogleAccount(ctx, user.ID, googleUser.ID); err != nil {
-			return nil, err
+		if err := h.userRepo.LinkGoogleAccount(ctx, user.ID, googleUser.ID, googleUser.Picture); err != nil {
+			return nil, false, err
 		}
 		user.GoogleID = &googleUser.ID
-		return user, nil
-	}
-
-	// 3. Criar novo usuário
-	username := generateUsername(googleUser.Name, googleUser.Email)
-	return h.userRepo.CreateWithGoogle(ctx, username, googleUser.Email, googleUser.ID)
-}
-
-func generateUsername(name, email string) string {
-	// Tentar usar o nome
-	if name != "" {
-		username := strings.ToUpper(strings.ReplaceAll(name, " ", "_"))
-		if len(username) > 20 {
-			username = username[:20]
+		if user.AvatarURL == nil {
+			user.AvatarURL = &googleUser.Picture
 		}
-		return username
+		return user, false, nil
 	}
 
-	// Usar parte do email
-	parts := strings.Split(email, "@")
-	username := strings.ToUpper(parts[0])
-	if len(username) > 20 {
-		username = username[:20]
+	user, err = h.userRepo.CreateWithGoogle(ctx, googleUser.Email, googleUser.ID, googleUser.Picture)
+	if err != nil {
+		return nil, false, err
 	}
-	return username
+	return user, true, nil
 }
