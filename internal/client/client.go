@@ -29,6 +29,15 @@ type Client struct {
 	Send     chan models.Message
 	Username string
 	UserID   string
+	RoomID   string
+}
+
+func (c *Client) GetRoomID() string {
+	return c.RoomID
+}
+
+func (c *Client) GetSendChannel() chan models.Message {
+	return c.Send
 }
 
 func NewClient(hub HubInterface, conn *websocket.Conn, username string) *Client {
@@ -40,22 +49,15 @@ func NewClient(hub HubInterface, conn *websocket.Conn, username string) *Client 
 	}
 }
 
-func (c *Client) ReadPump(broadcast chan<- models.Message, unregister chan<- *Client, messageRepo *repository.MessageRepository) {
+type UnregisterFunc func(c *Client)
+
+func (c *Client) ReadPump(broadcast chan<- models.Message, unregister UnregisterFunc, messageRepo *repository.MessageRepository) {
 	defer func() {
 		if c.Hub != nil {
 			c.Hub.BroadcastLeave(c.Username)
 		}
 
-		leaveMsg := models.Message{
-			ID:        uuid.New().String(),
-			Username:  "Sistema",
-			Content:   c.Username + " saiu do chat",
-			Timestamp: time.Now(),
-			Type:      "leave",
-		}
-		messageRepo.Create(context.Background(), &leaveMsg, c.UserID)
-
-		unregister <- c
+		unregister(c)
 		c.Conn.Close()
 	}()
 
@@ -85,6 +87,7 @@ func (c *Client) ReadPump(broadcast chan<- models.Message, unregister chan<- *Cl
 
 		msg := models.Message{
 			ID:        uuid.New().String(),
+			RoomID:    c.RoomID,
 			Username:  c.Username,
 			Content:   incoming.Content,
 			Timestamp: time.Now(),

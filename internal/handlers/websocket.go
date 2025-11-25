@@ -4,10 +4,9 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"time"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"github.com/lucaspanzera1/chat/internal/auth"
 	"github.com/lucaspanzera1/chat/internal/client"
 	"github.com/lucaspanzera1/chat/internal/hub"
 	"github.com/lucaspanzera1/chat/internal/models"
@@ -37,15 +36,27 @@ func NewWSHandler(h *hub.Hub, userRepo *repository.UserRepository, messageRepo *
 }
 
 func (wsh *WSHandler) ServeWS(w http.ResponseWriter, r *http.Request) {
-	username := r.URL.Query().Get("username")
-	if username == "" {
-		username = "Anonymous"
+	token := r.URL.Query().Get("token")
+	roomID := r.URL.Query().Get("roomId")
+
+	if roomID == "" {
+		roomID = "00000000-0000-0000-0000-000000000001" // Sala geral
 	}
 
-	user, err := wsh.userRepo.Create(context.Background(), username)
+	if token == "" {
+		http.Error(w, "Token não fornecido", http.StatusUnauthorized)
+		return
+	}
+
+	claims, err := auth.ValidateToken(token)
 	if err != nil {
-		log.Printf("Erro ao criar usuário: %v", err)
-		http.Error(w, "Erro ao autenticar", http.StatusInternalServerError)
+		http.Error(w, "Token inválido", http.StatusUnauthorized)
+		return
+	}
+
+	user, err := wsh.userRepo.GetByID(context.Background(), claims.UserID)
+	if err != nil || user == nil {
+		http.Error(w, "Usuário não encontrado", http.StatusUnauthorized)
 		return
 	}
 
@@ -59,22 +70,17 @@ func (wsh *WSHandler) ServeWS(w http.ResponseWriter, r *http.Request) {
 		Hub:      wsh.hub,
 		Conn:     conn,
 		Send:     make(chan models.Message, 256),
-		Username: username,
+		Username: user.Username,
 		UserID:   user.ID,
+		RoomID:   roomID,
 	}
 
 	wsh.hub.Register <- c
 
-	joinMsg := models.Message{
-		ID:        uuid.New().String(),
-		Username:  "Sistema",
-		Content:   username + " entrou no chat",
-		Timestamp: time.Now(),
-		Type:      "join",
+	unregisterFunc := func(client *client.Client) {
+		wsh.hub.Unregister <- client
 	}
-	wsh.messageRepo.Create(context.Background(), &joinMsg, user.ID)
-	wsh.hub.Broadcast <- joinMsg
 
 	go c.WritePump()
-	go c.ReadPump(wsh.hub.Broadcast, wsh.hub.Unregister, wsh.messageRepo)
+	go c.ReadPump(wsh.hub.Broadcast, unregisterFunc, wsh.messageRepo)
 }

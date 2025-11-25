@@ -1,81 +1,81 @@
 package hub
 
 import (
-	"time"
-
-	"github.com/google/uuid"
-	"github.com/lucaspanzera1/chat/internal/client"
 	"github.com/lucaspanzera1/chat/internal/models"
 )
 
+type ClientInterface interface {
+	GetRoomID() string
+	GetSendChannel() chan models.Message
+}
+
 type Hub struct {
-	Clients    map[*client.Client]bool
+	Rooms      map[string]map[ClientInterface]bool
 	Broadcast  chan models.Message
-	Register   chan *client.Client
-	Unregister chan *client.Client
+	Register   chan ClientInterface
+	Unregister chan ClientInterface
 }
 
 func NewHub() *Hub {
 	return &Hub{
-		Clients:    make(map[*client.Client]bool),
+		Rooms:      make(map[string]map[ClientInterface]bool),
 		Broadcast:  make(chan models.Message),
-		Register:   make(chan *client.Client),
-		Unregister: make(chan *client.Client),
+		Register:   make(chan ClientInterface),
+		Unregister: make(chan ClientInterface),
 	}
-}
-
-func (h *Hub) ClientCount() int {
-	return len(h.Clients)
 }
 
 func (h *Hub) Run() {
 	for {
 		select {
 		case client := <-h.Register:
-			h.Clients[client] = true
-			h.broadcastCount()
+			roomID := client.GetRoomID()
+			if h.Rooms[roomID] == nil {
+				h.Rooms[roomID] = make(map[ClientInterface]bool)
+			}
+			h.Rooms[roomID][client] = true
+			h.broadcastCountToRoom(roomID)
 
 		case client := <-h.Unregister:
-			if _, ok := h.Clients[client]; ok {
-				delete(h.Clients, client)
-				close(client.Send)
-				h.broadcastCount()
+			roomID := client.GetRoomID()
+			if clients, ok := h.Rooms[roomID]; ok {
+				if _, exists := clients[client]; exists {
+					delete(clients, client)
+					close(client.GetSendChannel())
+					h.broadcastCountToRoom(roomID)
+				}
 			}
 
 		case message := <-h.Broadcast:
-			message.OnlineCount = len(h.Clients)
-			for client := range h.Clients {
-				select {
-				case client.Send <- message:
-				default:
-					close(client.Send)
-					delete(h.Clients, client)
+			if clients, ok := h.Rooms[message.RoomID]; ok {
+				message.OnlineCount = len(clients)
+				for client := range clients {
+					select {
+					case client.GetSendChannel() <- message:
+					default:
+						close(client.GetSendChannel())
+						delete(clients, client)
+					}
 				}
 			}
 		}
 	}
 }
 
-func (h *Hub) broadcastCount() {
-	countMsg := models.Message{
-		Type:        "count",
-		OnlineCount: len(h.Clients),
-	}
-	for client := range h.Clients {
-		select {
-		case client.Send <- countMsg:
-		default:
+func (h *Hub) broadcastCountToRoom(roomID string) {
+	if clients, ok := h.Rooms[roomID]; ok {
+		countMsg := models.Message{
+			RoomID:      roomID,
+			Type:        "count",
+			OnlineCount: len(clients),
+		}
+		for client := range clients {
+			select {
+			case client.GetSendChannel() <- countMsg:
+			default:
+			}
 		}
 	}
 }
 
-func (h *Hub) BroadcastLeave(username string) {
-	msg := models.Message{
-		ID:        uuid.New().String(),
-		Username:  "Sistema",
-		Content:   username + " saiu do chat",
-		Timestamp: time.Now(),
-		Type:      "leave",
-	}
-	h.Broadcast <- msg
-}
+func (h *Hub) BroadcastLeave(username string) {}

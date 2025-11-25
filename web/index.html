@@ -34,176 +34,307 @@
 
     <main class="min-h-screen flex items-center justify-center p-4">
 
-        <div id="login" class="bento-card w-full max-w-md p-8 flex flex-col gap-6">
-            <div class="flex justify-between items-start">
-                <div class="flex items-center gap-2">
-                    <div class="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
-                    <span class="text-xs-custom">WAITING FOR AUTH</span>
-                </div>
-                <span class="text-xs-custom opacity-50">PORT: 8080</span>
-            </div>
-
-            <div class="text-center my-4">
-                <h1 class="text-3xl font-bold mb-2 glitch-text" data-text="LOGIN">LOGIN</h1>
-                <p class="text-cyber-dim text-sm">> Insira sua identificação para prosseguir.</p>
-            </div>
-
-            <div class="flex flex-col gap-4">
-                <input type="text" id="username" placeholder="USERNAME..."
-                    class="w-full bg-cyber-bg border border-cyber-border p-3 text-cyber-text focus:outline-none focus:border-cyber-dim transition-colors placeholder-cyber-dim/50 uppercase tracking-widest text-sm"
-                    onkeypress="if(event.key==='Enter')connect()">
-
-                <button onclick="connect()"
-                    class="w-full text-center text-xs border border-cyber-border px-4 py-3 hover:bg-white hover:text-black transition-colors tracking-[0.2em] font-bold">
-                    [ CONNECT ]
-                </button>
-            </div>
-
-            <div class="mt-auto pt-4 text-center">
-                <a href="index.html"
-                    class="text-xs-custom hover:text-white transition-colors border-b border-transparent hover:border-cyber-dim pb-0.5">
-                    < BACK TO SYSTEM </a>
-            </div>
-        </div>
-
-        <div id="chat" class="hidden bento-card w-full max-w-4xl h-[80vh] flex-col relative">
-            <div class="flex justify-between items-center border-b border-cyber-border pb-4 mb-4">
-                <div class="flex items-center gap-3">
-                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <div>
-                        <h2 class="text-sm font-bold tracking-wider">SECURE CHANNEL</h2>
-                        <p class="text-[10px] text-cyber-dim font-mono">ENCRYPTED // <span id="current-user"
-                                class="text-cyber-text">GUEST</span></p>
-                    </div>
-                </div>
-                <div class="flex items-center gap-4">
-                    <span class="text-xs-custom hidden sm:inline">
-                        <span id="online-count" class="text-green-500">0</span> ONLINE
-                    </span>
-                    <span class="text-xs-custom hidden sm:inline">STATUS: CONNECTED</span>
-                    <button onclick="location.reload()" class="text-xs-custom hover:text-red-500 transition-colors">[
-                        DISCONNECT ]</button>
-                </div>
-            </div>
-
-            <div id="messages" class="flex-1 overflow-y-auto space-y-4 pr-2 mb-4 font-mono text-sm scrollbar-thin">
-                <div class="text-center py-4">
-                    <span class="text-xs text-cyber-dim border border-cyber-border px-2 py-1 bg-cyber-bg/50">SYSTEM
-                        INITIALIZED</span>
-                </div>
-            </div>
-
-            <div class="mt-auto pt-4 border-t border-cyber-border">
-                <div class="flex gap-2">
-                    <span class="py-3 text-cyber-dim select-none">></span>
-                    <input type="text" id="message" placeholder="ENTER MESSAGE..."
-                        class="flex-1 bg-transparent border-none text-cyber-text focus:outline-none placeholder-cyber-dim/50"
-                        onkeypress="if(event.key==='Enter')sendMessage()">
-                    <button onclick="sendMessage()"
-                        class="text-xs border border-cyber-border px-4 hover:bg-white hover:text-black transition-colors tracking-widest">
-                        SEND
+        <!-- Chat Section -->
+        <div id="chat" class="bento-card w-full max-w-6xl h-[80vh] flex-row relative hidden">
+            <!-- Sidebar -->
+            <div class="w-64 border-r border-cyber-border flex flex-col">
+                <div class="p-4 border-b border-cyber-border">
+                    <h3 class="text-xs font-bold tracking-wider mb-2">CHANNELS</h3>
+                    <button onclick="switchToGeneral()" id="generalBtn" 
+                            class="w-full text-left text-xs p-2 hover:bg-cyber-card transition-colors border border-cyber-border mb-2 relative flex items-center justify-between">
+                        <span># GENERAL</span>
+                        <span id="generalBadge" class="hidden bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full animate-pulse">0</span>
                     </button>
                 </div>
-            </div>
-            <div
-                class="mt-4 bento-card col-span-2 md:col-span-4 md:row-span-1 flex flex-col md:flex-row items-center justify-between py-4 gap-4 text-center md:text-left">
-                <div
-                    class="flex flex-wrap justify-center md:justify-start gap-3 sm:gap-4 text-xs-custom text-cyber-dim font-mono">
-                    <span>STATUS: <span class="text-green-500">OK</span></span>
-                    <span class="hidden sm:inline text-cyber-border">|</span>
-                    <span>TIME: <span id="uptime" class="text-cyber-text">00:00:00</span></span>
-                    <span class="hidden sm:inline text-cyber-border">|</span>
-                    <span>KERNEL: <span class="text-cyber-text">6.8.0-LTS</span></span>
-                    <span class="hidden sm:inline text-cyber-border">|</span>
-                    <span>SHELL: <span class="text-cyber-text">ZSH</span></span>
+                
+                <div class="p-4 border-b border-cyber-border">
+                    <h3 class="text-xs font-bold tracking-wider mb-2">DIRECT MESSAGES</h3>
+                    <div id="usersList" class="space-y-1"></div>
                 </div>
-                <div class="text-xs-custom text-cyber-dim whitespace-nowrap">
-                    POWERED BY <a href="https://www.stelestial.app" target="_blank"
-                        class="hover:text-white underline decoration-dotted">STELESTIAL</a>
+            </div>
+
+            <!-- Main Chat -->
+            <div class="flex-1 flex flex-col">
+                <div class="flex justify-between items-center border-b border-cyber-border pb-4 mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <div>
+                            <h2 class="text-sm font-bold tracking-wider">SECURE CHANNEL</h2>
+                            <p class="text-[10px] text-cyber-dim font-mono">ENCRYPTED // <span id="current-user"
+                                    class="text-cyber-text">GUEST</span></p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <span class="text-xs-custom hidden sm:inline">
+                            <span id="online-count" class="text-green-500">0</span> ONLINE
+                        </span>
+                        <span class="text-xs-custom hidden sm:inline">STATUS: CONNECTED</span>
+                        <button onclick="disconnect()"
+                            class="text-xs-custom hover:text-red-500 transition-colors">[
+                            DISCONNECT ]</button>
+                    </div>
+                </div>
+
+                <div id="messages" class="flex-1 overflow-y-auto space-y-4 pr-2 mb-4 font-mono text-sm scrollbar-thin">
+                    <div class="text-center py-4">
+                        <span class="text-xs text-cyber-dim border border-cyber-border px-2 py-1 bg-cyber-bg/50">SYSTEM
+                            INITIALIZED</span>
+                    </div>
+                </div>
+
+                <div class="mt-auto pt-4 border-t border-cyber-border">
+                    <div class="flex gap-2">
+                        <span class="py-3 text-cyber-dim select-none">></span>
+                        <input type="text" id="message" placeholder="ENTER MESSAGE..."
+                            class="flex-1 bg-transparent border-none text-cyber-text focus:outline-none placeholder-cyber-dim/50"
+                            onkeypress="if(event.key==='Enter')sendMessage()">
+                        <button onclick="sendMessage()"
+                            class="text-xs border border-cyber-border px-4 hover:bg-white hover:text-black transition-colors tracking-widest">
+                            SEND
+                        </button>
+                    </div>
+                </div>
+                <div
+                    class="mt-4 bento-card col-span-2 md:col-span-4 md:row-span-1 flex flex-col md:flex-row items-center justify-between py-4 gap-4 text-center md:text-left">
+                    <div
+                        class="flex flex-wrap justify-center md:justify-start gap-3 sm:gap-4 text-xs-custom text-cyber-dim font-mono">
+                        <span>STATUS: <span class="text-green-500">OK</span></span>
+                        <span class="hidden sm:inline text-cyber-border">|</span>
+                        <span>TIME: <span id="uptime" class="text-cyber-text">00:00:00</span></span>
+                        <span class="hidden sm:inline text-cyber-border">|</span>
+                        <span>KERNEL: <span class="text-cyber-text">6.8.0-LTS</span></span>
+                        <span class="hidden sm:inline text-cyber-border">|</span>
+                        <span>SHELL: <span class="text-cyber-text">ZSH</span></span>
+                    </div>
+                    <div class="text-xs-custom text-cyber-dim whitespace-nowrap">
+                        POWERED BY <a href="https://www.stelestial.app" target="_blank"
+                            class="hover:text-white underline decoration-dotted">STELESTIAL</a>
+                    </div>
                 </div>
             </div>
         </div>
     </main>
 
     <script>
-        // Initialize Theme from LocalStorage
-        if (localStorage.getItem('theme') === 'retro') {
-            document.body.classList.add('retro-theme');
+        // Verificar autenticação
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+        if (!token || !user.username) {
+            window.location.href = '/auth.html';
         }
 
         let ws;
-        let currentUser = '';
+        let currentUser = user.username;
 
-        function connect() {
-            const usernameInput = document.getElementById('username');
-            const username = usernameInput.value.trim();
-            if (!username) {
-                usernameInput.classList.add('border-red-500');
-                setTimeout(() => usernameInput.classList.remove('border-red-500'), 500);
-                return;
-            }
+        document.getElementById('current-user').innerText = currentUser.toUpperCase();
+        document.getElementById('chat').classList.remove('hidden');
+        document.getElementById('chat').classList.add('flex');
 
-            currentUser = username;
-            document.getElementById('current-user').innerText = username.toUpperCase();
+        let currentRoomID = '00000000-0000-0000-0000-000000000001';
+        let currentRoomUser = null;
+        let unreadMessages = {}; // { roomID: count }
+        let allRooms = {}; // { roomID: { username, element } }
 
-            try {
-                ws = new WebSocket(`ws://localhost:8080/ws?username=${encodeURIComponent(username)}`);
+        // Conectar com token
+        function connectWebSocket() {
+            ws = new WebSocket(`ws://localhost:8080/ws?token=${encodeURIComponent(token)}&roomId=${currentRoomID}`);
 
-                ws.onopen = () => {
-                    transitionToChat();
-                    loadHistory(); // Carregar histórico ao conectar
-                };
+            ws.onopen = () => {
+                console.log('WebSocket conectado');
+                loadHistory();
+                // Resetar badge da sala atual
+                updateBadge(currentRoomID, 0);
+            };
 
-                ws.onmessage = (event) => {
-                    const msg = JSON.parse(event.data);
-                    addMessage(msg);
-                };
-
-                ws.onclose = () => {
-                    alert('CONNECTION LOST');
-                    location.reload();
-                };
-
-                ws.onerror = (err) => {
-                    console.log('WebSocket error, falling back to demo mode for UI check', err);
-                    transitionToChat();
-                    loadHistory(); // Tentar carregar histórico mesmo em modo demo
+            ws.onmessage = (event) => {
+                const msg = JSON.parse(event.data);
+                
+                // Se a mensagem é de outra sala e não é do tipo count
+                if (msg.roomId && msg.roomId !== currentRoomID && msg.type !== 'count') {
+                    incrementUnread(msg.roomId);
                 }
+                
+                addMessage(msg);
+            };
 
-            } catch (e) {
-                console.error(e);
-                transitionToChat();
+            ws.onclose = () => {
+                console.log('WebSocket desconectado');
+            };
+
+            ws.onerror = (err) => {
+                console.error('WebSocket error:', err);
+                alert('Erro de conexão. Verifique sua autenticação.');
+                logout();
+            };
+        }
+
+        function disconnect() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.close();
+            }
+            logout();
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/auth.html';
+        }
+
+        function incrementUnread(roomID) {
+            if (!unreadMessages[roomID]) {
+                unreadMessages[roomID] = 0;
+            }
+            unreadMessages[roomID]++;
+            updateBadge(roomID, unreadMessages[roomID]);
+            
+            // Atualizar título da página
+            updatePageTitle();
+        }
+
+        function updateBadge(roomID, count) {
+            // Atualizar badge do General
+            if (roomID === '00000000-0000-0000-0000-000000000001') {
+                const badge = document.getElementById('generalBadge');
+                if (count > 0) {
+                    badge.textContent = count > 99 ? '99+' : count;
+                    badge.classList.remove('hidden');
+                } else {
+                    badge.classList.add('hidden');
+                }
+            } else {
+                // Atualizar badge de DM
+                const badge = document.getElementById(`badge-${roomID}`);
+                if (badge) {
+                    if (count > 0) {
+                        badge.textContent = count > 99 ? '99+' : count;
+                        badge.classList.remove('hidden');
+                    } else {
+                        badge.classList.add('hidden');
+                    }
+                }
             }
         }
 
+        function updatePageTitle() {
+            const totalUnread = Object.values(unreadMessages).reduce((sum, count) => sum + count, 0);
+            if (totalUnread > 0) {
+                document.title = `(${totalUnread}) CHAT //`;
+            } else {
+                document.title = 'CHAT //';
+            }
+        }
+
+        async function loadUsers() {
+            try {
+                const response = await fetch('/api/users', {
+                    headers: { 'Authorization': token }
+                });
+                const users = await response.json();
+                
+                const usersList = document.getElementById('usersList');
+                usersList.innerHTML = users.map(u => {
+                    // Criar ID único para a sala (será obtido ao clicar)
+                    const tempRoomId = `temp-${u.id}`;
+                    return `
+                        <button onclick="startPrivateChat('${u.id}', '${u.username}')" 
+                                id="user-${u.id}"
+                                class="w-full text-left text-xs p-2 hover:bg-cyber-card transition-colors relative flex items-center justify-between">
+                            <span>@ ${u.username}</span>
+                            <span id="badge-temp-${u.id}" class="hidden bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full animate-pulse">0</span>
+                        </button>
+                    `;
+                }).join('');
+            } catch (err) {
+                console.error('Erro ao carregar usuários:', err);
+            }
+        }
+
+        async function startPrivateChat(otherUserID, username) {
+            try {
+                console.log('Iniciando chat privado com:', username, otherUserID);
+                
+                const response = await fetch('/api/room/private', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': token 
+                    },
+                    body: JSON.stringify({ otherUserId: otherUserID })
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Erro ${response.status}: ${errorText}`);
+                }
+                
+                const room = await response.json();
+                console.log('Sala criada:', room);
+                
+                // Atualizar o badge com o ID real da sala
+                const tempBadge = document.getElementById(`badge-temp-${otherUserID}`);
+                if (tempBadge) {
+                    tempBadge.id = `badge-${room.id}`;
+                }
+                
+                currentRoomID = room.id;
+                currentRoomUser = username;
+                
+                // Resetar contador de não lidas desta sala
+                unreadMessages[room.id] = 0;
+                updateBadge(room.id, 0);
+                updatePageTitle();
+                
+                document.querySelector('h2').textContent = `DM: ${username}`;
+                
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.close();
+                }
+                
+                connectWebSocket();
+            } catch (err) {
+                console.error('Erro ao criar sala privada:', err);
+                alert('Erro ao criar sala privada: ' + err.message);
+            }
+        }
+
+        function switchToGeneral() {
+            currentRoomID = '00000000-0000-0000-0000-000000000001';
+            currentRoomUser = null;
+            
+            // Resetar contador de não lidas do General
+            unreadMessages[currentRoomID] = 0;
+            updateBadge(currentRoomID, 0);
+            updatePageTitle();
+            
+            document.querySelector('h2').textContent = 'SECURE CHANNEL';
+            
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.close();
+            }
+            
+            connectWebSocket();
+        }
+
         function loadHistory() {
-            fetch('/api/messages?limit=50')
+            fetch(`/api/room/messages?roomId=${currentRoomID}&limit=50`)
                 .then(response => response.json())
                 .then(messages => {
                     if (messages && messages.length > 0) {
-                        // Limpar mensagem de inicialização
                         const messagesDiv = document.getElementById('messages');
                         messagesDiv.innerHTML = '';
                         
-                        // Adicionar mensagens do histórico
                         messages.forEach(msg => {
-                            addMessage(msg, true); // true = não fazer scroll automático
+                            addMessage(msg, true);
                         });
                         
-                        // Scroll para o final após carregar tudo
                         messagesDiv.scrollTop = messagesDiv.scrollHeight;
                     }
                 })
                 .catch(err => {
                     console.error('Erro ao carregar histórico:', err);
                 });
-        }
-
-        function transitionToChat() {
-            document.getElementById('login').style.display = 'none';
-            const chat = document.getElementById('chat');
-            chat.classList.remove('hidden');
-            chat.classList.add('flex');
         }
 
         function sendMessage() {
@@ -214,8 +345,8 @@
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ content }));
             } else {
-                // Demo mode echo
-                addMessage({ username: currentUser, content: content, type: 'message', timestamp: new Date() });
+                alert('Conexão perdida. Reconectando...');
+                connectWebSocket();
             }
 
             input.value = '';
@@ -236,7 +367,23 @@
             const messagesDiv = document.getElementById('messages');
             const div = document.createElement('div');
             const isMe = msg.username === currentUser;
-            const time = new Date(msg.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            // Converter timestamp para horário de Brasília
+            let time = '';
+            if (msg.timestamp) {
+                const date = new Date(msg.timestamp);
+                time = date.toLocaleTimeString('pt-BR', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    timeZone: 'America/Sao_Paulo'
+                });
+            } else {
+                time = new Date().toLocaleTimeString('pt-BR', { 
+                    hour: '2-digit', 
+                    minute: '2-digit',
+                    timeZone: 'America/Sao_Paulo'
+                });
+            }
 
             if (msg.type === 'system' || msg.type === 'join' || msg.type === 'leave') {
                 div.className = 'flex justify-center my-2';
@@ -270,6 +417,20 @@
         }
         setInterval(updateTime, 1000);
         updateTime();
+
+        // Carregar usuários ao conectar
+        loadUsers();
+        connectWebSocket();
+
+        // Detectar quando a aba fica visível novamente
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && currentRoomID) {
+                // Resetar contador da sala atual quando voltar
+                unreadMessages[currentRoomID] = 0;
+                updateBadge(currentRoomID, 0);
+                updatePageTitle();
+            }
+        });
     </script>
 </body>
 

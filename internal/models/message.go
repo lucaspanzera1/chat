@@ -4,6 +4,7 @@ import "time"
 
 type Message struct {
 	ID          string    `json:"id"`
+	RoomID      string    `json:"roomId"`
 	Username    string    `json:"username"`
 	Content     string    `json:"content"`
 	Timestamp   time.Time `json:"timestamp"`

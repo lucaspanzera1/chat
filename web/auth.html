@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AUTH // CHAT</title>
+    <link rel="icon" type="image/png" href="https://em-content.zobj.net/source/apple/114/speech-balloon_1f4ac.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://www.lucaspanzera.com/style.css">
+</head>
+
+<body class="min-h-screen dither-bg dither-overlay selection:bg-white selection:text-black font-mono overflow-hidden">
+    <div class="scanlines"></div>
+
+    <main class="min-h-screen flex items-center justify-center p-4">
+        <!-- Login Form -->
+        <div id="loginForm" class="bento-card w-full max-w-md p-8 flex flex-col gap-6">
+            <div class="text-center">
+                <h1 class="text-3xl font-bold mb-2 glitch-text">LOGIN</h1>
+                <p class="text-cyber-dim text-sm">Entre com suas credenciais</p>
+            </div>
+
+            <div class="flex flex-col gap-4">
+                <input type="email" id="loginEmail" placeholder="EMAIL..."
+                    class="w-full bg-cyber-bg border border-cyber-border p-3 text-cyber-text focus:outline-none focus:border-cyber-dim transition-colors"
+                    onkeypress="if(event.key==='Enter')login()">
+                <input type="password" id="loginPassword" placeholder="SENHA..."
+                    class="w-full bg-cyber-bg border border-cyber-border p-3 text-cyber-text focus:outline-none focus:border-cyber-dim transition-colors"
+                    onkeypress="if(event.key==='Enter')login()">
+
+                <div id="loginError" class="text-red-500 text-xs hidden p-2 border border-red-500 bg-red-500/10"></div>
+
+                <button onclick="login()" id="loginBtn"
+                    class="w-full text-center text-xs border border-cyber-border px-4 py-3 hover:bg-white hover:text-black transition-colors tracking-[0.2em] font-bold">
+                    [ ENTRAR ]
+                </button>
+            </div>
+
+            <div class="text-center">
+                <button onclick="showRegister()" class="text-xs-custom hover:text-white transition-colors">
+                    Não tem conta? REGISTRE-SE
+                </button>
+            </div>
+        </div>
+
+        <!-- Register Form -->
+        <div id="registerForm" class="hidden bento-card w-full max-w-md p-8 flex flex-col gap-6">
+            <div class="text-center">
+                <h1 class="text-3xl font-bold mb-2 glitch-text">REGISTRO</h1>
+                <p class="text-cyber-dim text-sm">Crie sua conta</p>
+            </div>
+
+            <div class="flex flex-col gap-4">
+                <input type="text" id="registerUsername" placeholder="USERNAME..."
+                    class="w-full bg-cyber-bg border border-cyber-border p-3 text-cyber-text focus:outline-none focus:border-cyber-dim transition-colors uppercase"
+                    maxlength="20">
+                <input type="email" id="registerEmail" placeholder="EMAIL..."
+                    class="w-full bg-cyber-bg border border-cyber-border p-3 text-cyber-text focus:outline-none focus:border-cyber-dim transition-colors">
+                <input type="password" id="registerPassword" placeholder="SENHA (MIN 6 CARACTERES)..."
+                    class="w-full bg-cyber-bg border border-cyber-border p-3 text-cyber-text focus:outline-none focus:border-cyber-dim transition-colors">
+
+                <div id="registerError" class="text-red-500 text-xs hidden p-2 border border-red-500 bg-red-500/10"></div>
+
+                <button onclick="register()" id="registerBtn"
+                    class="w-full text-center text-xs border border-cyber-border px-4 py-3 hover:bg-white hover:text-black transition-colors tracking-[0.2em] font-bold">
+                    [ REGISTRAR ]
+                </button>
+            </div>
+
+            <div class="text-center">
+                <button onclick="showLogin()" class="text-xs-custom hover:text-white transition-colors">
+                    Já tem conta? FAÇA LOGIN
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function showRegister() {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('registerForm').classList.remove('hidden');
+            clearErrors();
+        }
+
+        function showLogin() {
+            document.getElementById('registerForm').classList.add('hidden');
+            document.getElementById('loginForm').classList.remove('hidden');
+            clearErrors();
+        }
+
+        function clearErrors() {
+            document.getElementById('loginError').classList.add('hidden');
+            document.getElementById('registerError').classList.add('hidden');
+        }
+
+        function showError(elementId, message) {
+            const errorDiv = document.getElementById(elementId);
+            errorDiv.textContent = '⚠ ' + message;
+            errorDiv.classList.remove('hidden');
+            setTimeout(() => errorDiv.classList.add('hidden'), 5000);
+        }
+
+        function validateEmail(email) {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        }
+
+        async function register() {
+            const username = document.getElementById('registerUsername').value.trim();
+            const email = document.getElementById('registerEmail').value.trim();
+            const password = document.getElementById('registerPassword').value;
+            const errorDiv = 'registerError';
+            const btn = document.getElementById('registerBtn');
+
+            clearErrors();
+
+            if (!username || !email || !password) {
+                showError(errorDiv, 'Todos os campos são obrigatórios');
+                return;
+            }
+
+            if (username.length < 3) {
+                showError(errorDiv, 'Username deve ter no mínimo 3 caracteres');
+                return;
+            }
+
+            if (!validateEmail(email)) {
+                showError(errorDiv, 'Email inválido');
+                return;
+            }
+
+            if (password.length < 6) {
+                showError(errorDiv, 'Senha deve ter no mínimo 6 caracteres');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = '[ REGISTRANDO... ]';
+
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, password })
+                });
+
+                const text = await response.text();
+
+                if (!response.ok) {
+                    throw new Error(text || 'Erro ao registrar');
+                }
+
+                const data = JSON.parse(text);
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                
+                // Sucesso - redirecionar
+                window.location.href = '/';
+            } catch (error) {
+                showError(errorDiv, error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '[ REGISTRAR ]';
+            }
+        }
+
+        async function login() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            const errorDiv = 'loginError';
+            const btn = document.getElementById('loginBtn');
+
+            clearErrors();
+
+            if (!email || !password) {
+                showError(errorDiv, 'Todos os campos são obrigatórios');
+                return;
+            }
+
+            if (!validateEmail(email)) {
+                showError(errorDiv, 'Email inválido');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = '[ CONECTANDO... ]';
+
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const text = await response.text();
+
+                if (!response.ok) {
+                    throw new Error(text || 'Credenciais inválidas');
+                }
+
+                const data = JSON.parse(text);
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                
+                // Sucesso - redirecionar
+                window.location.href = '/';
+            } catch (error) {
+                showError(errorDiv, error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '[ ENTRAR ]';
+            }
+        }
+
+        // Auto-focus no primeiro campo
+        document.getElementById('loginEmail').focus();
+    </script>
+</body>
+
+</html>

@@ -21,6 +21,10 @@ func Connect() error {
 		return err
 	}
 
+	config.ConnConfig.RuntimeParams = map[string]string{
+		"timezone": "America/Sao_Paulo",
+	}
+
 	pool, err := pgxpool.NewWithConfig(context.Background(), config)
 	if err != nil {
 		return err
@@ -28,6 +32,11 @@ func Connect() error {
 
 	if err := pool.Ping(context.Background()); err != nil {
 		return err
+	}
+
+	_, err = pool.Exec(context.Background(), "SET timezone = 'America/Sao_Paulo'")
+	if err != nil {
+		log.Printf("Aviso: não foi possível configurar timezone: %v", err)
 	}
 
 	DB = pool
