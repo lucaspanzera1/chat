@@ -82,6 +82,17 @@ func main() {
 		httpHandler.CreatePrivateRoom(w, r)
 	})
 
+	http.HandleFunc("/api/group/create", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		httpHandler.CreateGroup(w, r)
+	})
+
+	http.HandleFunc("/api/groups", httpHandler.GetUserGroups)
+	http.HandleFunc("/api/group/members", httpHandler.GetGroupMembers)
+
 	fs := http.FileServer(http.Dir("web"))
 	http.Handle("/", fs)
 

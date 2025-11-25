@@ -142,3 +142,83 @@ func (h *HTTPHandler) CreatePrivateRoom(w http.ResponseWriter, r *http.Request) 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(room)
 }
+
+func (h *HTTPHandler) CreateGroup(w http.ResponseWriter, r *http.Request) {
+	token := r.Header.Get("Authorization")
+	if token == "" {
+		http.Error(w, "Token não fornecido", http.StatusUnauthorized)
+		return
+	}
+
+	claims, err := auth.ValidateToken(token)
+	if err != nil {
+		http.Error(w, "Token inválido", http.StatusUnauthorized)
+		return
+	}
+
+	var req models.CreateGroupRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Dados inválidos", http.StatusBadRequest)
+		return
+	}
+
+	if req.Name == "" {
+		http.Error(w, "Nome do grupo é obrigatório", http.StatusBadRequest)
+		return
+	}
+
+	if len(req.UserIDs) < 2 {
+		http.Error(w, "Grupo deve ter no mínimo 3 membros (você + 2 usuários)", http.StatusBadRequest)
+		return
+	}
+
+	room, err := h.roomRepo.CreateGroup(r.Context(), req.Name, claims.UserID, req.UserIDs)
+	if err != nil {
+		log.Printf("Erro ao criar grupo: %v", err)
+		http.Error(w, "Erro ao criar grupo: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(room)
+}
+
+func (h *HTTPHandler) GetUserGroups(w http.ResponseWriter, r *http.Request) {
+	token := r.Header.Get("Authorization")
+	if token == "" {
+		http.Error(w, "Token não fornecido", http.StatusUnauthorized)
+		return
+	}
+
+	claims, err := auth.ValidateToken(token)
+	if err != nil {
+		http.Error(w, "Token inválido", http.StatusUnauthorized)
+		return
+	}
+
+	groups, err := h.roomRepo.GetUserGroups(r.Context(), claims.UserID)
+	if err != nil {
+		http.Error(w, "Erro ao buscar grupos", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(groups)
+}
+
+func (h *HTTPHandler) GetGroupMembers(w http.ResponseWriter, r *http.Request) {
+	roomID := r.URL.Query().Get("roomId")
+	if roomID == "" {
+		http.Error(w, "roomId é obrigatório", http.StatusBadRequest)
+		return
+	}
+
+	members, err := h.roomRepo.GetGroupMembers(r.Context(), roomID)
+	if err != nil {
+		http.Error(w, "Erro ao buscar membros", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(members)
+}

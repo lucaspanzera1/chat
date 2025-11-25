@@ -37,7 +37,7 @@
         <!-- Chat Section -->
         <div id="chat" class="bento-card w-full max-w-6xl h-[80vh] flex-row relative hidden">
             <!-- Sidebar -->
-            <div class="w-64 border-r border-cyber-border flex flex-col">
+            <div class="w-64 border-r border-cyber-border flex flex-col overflow-y-auto">
                 <div class="p-4 border-b border-cyber-border">
                     <h3 class="text-xs font-bold tracking-wider mb-2">CHANNELS</h3>
                     <button onclick="switchToGeneral()" id="generalBtn" 
@@ -47,6 +47,14 @@
                     </button>
                 </div>
                 
+                <div class="p-4 border-b border-cyber-border">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-xs font-bold tracking-wider">GROUPS</h3>
+                        <button onclick="showCreateGroup()" class="text-xs hover:text-green-500 transition-colors">[ + ]</button>
+                    </div>
+                    <div id="groupsList" class="space-y-1"></div>
+                </div>
+
                 <div class="p-4 border-b border-cyber-border">
                     <h3 class="text-xs font-bold tracking-wider mb-2">DIRECT MESSAGES</h3>
                     <div id="usersList" class="space-y-1"></div>
@@ -111,6 +119,31 @@
                             class="hover:text-white underline decoration-dotted">STELESTIAL</a>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Modal Create Group -->
+        <div id="createGroupModal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+            <div class="bento-card w-full max-w-md p-6 flex flex-col gap-4">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-xl font-bold">CRIAR GRUPO</h2>
+                    <button onclick="hideCreateGroup()" class="text-xs hover:text-red-500">[ X ]</button>
+                </div>
+
+                <input type="text" id="groupName" placeholder="NOME DO GRUPO..."
+                    class="w-full bg-cyber-bg border border-cyber-border p-3 text-cyber-text focus:outline-none uppercase">
+
+                <div class="max-h-60 overflow-y-auto border border-cyber-border p-2">
+                    <p class="text-xs text-cyber-dim mb-2">Selecione os membros (mínimo 2):</p>
+                    <div id="groupMembersList" class="space-y-2"></div>
+                </div>
+
+                <div id="createGroupError" class="text-red-500 text-xs hidden"></div>
+
+                <button onclick="createGroup()" id="createGroupBtn"
+                    class="w-full text-center text-xs border border-cyber-border px-4 py-3 hover:bg-white hover:text-black transition-colors tracking-[0.2em] font-bold">
+                    [ CRIAR ]
+                </button>
             </div>
         </div>
     </main>
@@ -368,10 +401,17 @@
             const div = document.createElement('div');
             const isMe = msg.username === currentUser;
             
-            // Converter timestamp para horário de Brasília
+            // Converter timestamp UTC para horário de Brasília
             let time = '';
             if (msg.timestamp) {
-                const date = new Date(msg.timestamp);
+                // Criar data a partir do timestamp UTC
+                let date = new Date(msg.timestamp);
+                
+                // Se não termina com Z, adicionar para indicar UTC
+                if (!msg.timestamp.endsWith('Z') && !msg.timestamp.includes('+')) {
+                    date = new Date(msg.timestamp + 'Z');
+                }
+                
                 time = date.toLocaleTimeString('pt-BR', { 
                     hour: '2-digit', 
                     minute: '2-digit',
@@ -386,10 +426,10 @@
             }
 
             if (msg.type === 'system' || msg.type === 'join' || msg.type === 'leave') {
-                div.className = 'flex justify-center my-2';
+                div.className = 'flex justify-center my-2 px-4';
                 div.innerHTML = `<span class="text-xs text-cyber-dim border border-cyber-border px-2 py-1 bg-cyber-bg/50">${msg.content}</span>`;
             } else {
-                div.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'} animate-fade-in`;
+                div.className = `flex flex-col ${isMe ? 'items-end pr-4' : 'items-start pl-4'} animate-fade-in`;
                 div.innerHTML = `
                     <div class="flex items-baseline gap-2 mb-1">
                         <span class="text-xs font-bold ${isMe ? 'text-green-500' : 'text-blue-400'}">${msg.username}</span>
@@ -418,7 +458,149 @@
         setInterval(updateTime, 1000);
         updateTime();
 
-        // Carregar usuários ao conectar
+        let selectedMembers = new Set();
+
+        async function loadGroups() {
+            try {
+                const response = await fetch('/api/groups', {
+                    headers: { 'Authorization': token }
+                });
+                const groups = await response.json();
+                
+                const groupsList = document.getElementById('groupsList');
+                if (groups && groups.length > 0) {
+                    groupsList.innerHTML = groups.map(g => `
+                        <button onclick="switchToGroup('${g.id}', '${g.name}')" 
+                                id="group-${g.id}"
+                                class="w-full text-left text-xs p-2 hover:bg-cyber-card transition-colors relative flex items-center justify-between">
+                            <span># ${g.name}</span>
+                            <span id="badge-${g.id}" class="hidden bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full animate-pulse">0</span>
+                        </button>
+                    `).join('');
+                } else {
+                    groupsList.innerHTML = '<p class="text-xs text-cyber-dim italic">Nenhum grupo ainda</p>';
+                }
+            } catch (err) {
+                console.error('Erro ao carregar grupos:', err);
+            }
+        }
+
+        function showCreateGroup() {
+            document.getElementById('createGroupModal').classList.remove('hidden');
+            loadUsersForGroup();
+        }
+
+        function hideCreateGroup() {
+            document.getElementById('createGroupModal').classList.add('hidden');
+            selectedMembers.clear();
+            document.getElementById('groupName').value = '';
+        }
+
+        async function loadUsersForGroup() {
+            try {
+                const response = await fetch('/api/users', {
+                    headers: { 'Authorization': token }
+                });
+                const users = await response.json();
+                
+                const membersList = document.getElementById('groupMembersList');
+                membersList.innerHTML = users.map(u => `
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-cyber-card p-2">
+                        <input type="checkbox" value="${u.id}" onchange="toggleMember('${u.id}')"
+                               class="w-4 h-4">
+                        <span class="text-xs">@ ${u.username}</span>
+                    </label>
+                `).join('');
+            } catch (err) {
+                console.error('Erro ao carregar usuários:', err);
+            }
+        }
+
+        function toggleMember(userID) {
+            if (selectedMembers.has(userID)) {
+                selectedMembers.delete(userID);
+            } else {
+                selectedMembers.add(userID);
+            }
+        }
+
+        async function createGroup() {
+            const name = document.getElementById('groupName').value.trim();
+            const errorDiv = document.getElementById('createGroupError');
+            const btn = document.getElementById('createGroupBtn');
+
+            errorDiv.classList.add('hidden');
+
+            if (!name) {
+                errorDiv.textContent = '⚠ Nome do grupo é obrigatório';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            if (selectedMembers.size < 2) {
+                errorDiv.textContent = '⚠ Selecione no mínimo 2 membros';
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = '[ CRIANDO... ]';
+
+            try {
+                const response = await fetch('/api/group/create', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': token 
+                    },
+                    body: JSON.stringify({ 
+                        name: name,
+                        userIds: Array.from(selectedMembers)
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText);
+                }
+
+                const group = await response.json();
+                console.log('Grupo criado:', group);
+
+                hideCreateGroup();
+                await loadGroups();
+                
+                // Entrar no grupo criado
+                switchToGroup(group.id, group.name);
+            } catch (err) {
+                console.error('Erro ao criar grupo:', err);
+                errorDiv.textContent = '⚠ ' + err.message;
+                errorDiv.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '[ CRIAR ]';
+            }
+        }
+
+        function switchToGroup(groupId, groupName) {
+            currentRoomID = groupId;
+            currentRoomUser = null;
+            
+            unreadMessages[groupId] = 0;
+            updateBadge(groupId, 0);
+            updatePageTitle();
+            
+            document.querySelector('h2').textContent = `GROUP: ${groupName}`;
+            
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.close();
+            }
+            
+            connectWebSocket();
+        }
+
+        // Carregar grupos e usuários ao conectar
+        loadGroups();
         loadUsers();
         connectWebSocket();
 

@@ -2,6 +2,8 @@
 
 Um chat em tempo real construído com Go, WebSockets e PostgreSQL com autenticação JWT e mensagens privadas.
 
+![Chat](git/print.png)
+
 ## 🏗️ Arquitetura
 
 ```
@@ -39,9 +41,17 @@ Um chat em tempo real construído com Go, WebSockets e PostgreSQL com autentica�
 ### 💬 Chat em Tempo Real
 - ✅ **Chat Geral**: Canal público para todos os usuários
 - ✅ **Mensagens Privadas (DM)**: Chat 1-a-1 entre usuários
+- ✅ **Grupos**: Chat com 3 ou mais usuários
 - ✅ Contagem de usuários online por sala
 - ✅ Badges de notificação para mensagens não lidas
 - ✅ Histórico de mensagens persistido no PostgreSQL
+
+### 👥 Grupos
+- ✅ Criar grupos com nome personalizado
+- ✅ Adicionar múltiplos membros (mínimo 3 usuários)
+- ✅ Lista de grupos na sidebar
+- ✅ Histórico de mensagens por grupo
+- ✅ Notificações de mensagens não lidas por grupo
 
 ### 🎨 Interface
 - ✅ Design cyberpunk com tema escuro
@@ -187,7 +197,8 @@ require (
 **rooms**
 - `id` (UUID, PK)
 - `name` (VARCHAR(100), nullable)
-- `type` (VARCHAR(20)) - "general" ou "private"
+- `type` (VARCHAR(20)) - "general", "private" ou "group"
+- `created_by` (UUID, FK → users) - Criador do grupo
 - `created_at` (TIMESTAMP)
 
 **room_users**
@@ -209,6 +220,11 @@ require (
 #### Usuários e Salas
 - `GET /api/users` - Listar usuários disponíveis (requer token)
 - `POST /api/room/private` - Criar/obter sala privada (requer token)
+
+#### Grupos
+- `POST /api/group/create` - Criar novo grupo (requer token)
+- `GET /api/groups` - Listar grupos do usuário (requer token)
+- `GET /api/group/members?roomId=UUID` - Listar membros de um grupo
 
 ## 🔧 Componentes
 
@@ -254,7 +270,7 @@ Camada de acesso a dados:
 - [x] Autenticação JWT
 - [x] Salas privadas (DMs)
 - [x] Notificações de mensagens não lidas
-- [ ] Grupos de chat (3+ usuários)
+- [x] Grupos de chat (3+ usuários)
 - [ ] Envio de arquivos/imagens
 - [ ] Emojis e reações
 - [ ] Status online/offline persistente

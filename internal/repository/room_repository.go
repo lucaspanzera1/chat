@@ -119,3 +119,103 @@ func (r *RoomRepository) GetAllUsers(ctx context.Context, excludeUserID string) 
 
 	return users, nil
 }
+
+func (r *RoomRepository) CreateGroup(ctx context.Context, name string, creatorID string, userIDs []string) (*models.Room, error) {
+	if len(userIDs) < 2 {
+		return nil, errors.New("grupo deve ter no mínimo 3 usuários (criador + 2)")
+	}
+
+	log.Printf("CreateGroup: Criando grupo '%s' com %d membros", name, len(userIDs)+1)
+
+	roomID := uuid.New().String()
+	insertRoom := `INSERT INTO rooms (id, name, type, created_by) 
+				   VALUES ($1, $2, 'group', $3) 
+				   RETURNING id, name, type, created_by, created_at`
+
+	room := &models.Room{}
+	err := r.db.QueryRow(ctx, insertRoom, roomID, name, creatorID).
+		Scan(&room.ID, &room.Name, &room.Type, &room.CreatedBy, &room.CreatedAt)
+	if err != nil {
+		log.Printf("✗ Erro ao criar grupo: %v", err)
+		return nil, err
+	}
+
+	// Adicionar criador ao grupo
+	allUserIDs := append([]string{creatorID}, userIDs...)
+
+	// Inserir todos os membros
+	for _, userID := range allUserIDs {
+		insertUser := `INSERT INTO room_users (room_id, user_id) VALUES ($1, $2)`
+		if _, err := r.db.Exec(ctx, insertUser, roomID, userID); err != nil {
+			log.Printf("✗ Erro ao adicionar usuário ao grupo: %v", err)
+			return nil, err
+		}
+	}
+
+	room.Users = allUserIDs
+	log.Printf("✓ Grupo '%s' criado com sucesso: %s", name, room.ID)
+
+	return room, nil
+}
+
+func (r *RoomRepository) GetGroupMembers(ctx context.Context, roomID string) ([]models.User, error) {
+	query := `SELECT u.id, u.username, u.email
+			  FROM users u
+			  INNER JOIN room_users ru ON ru.user_id = u.id
+			  WHERE ru.room_id = $1
+			  ORDER BY u.username`
+
+	rows, err := r.db.Query(ctx, query, roomID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []models.User
+	for rows.Next() {
+		var user models.User
+		if err := rows.Scan(&user.ID, &user.Username, &user.Email); err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	return users, nil
+}
+
+func (r *RoomRepository) GetUserGroups(ctx context.Context, userID string) ([]models.Room, error) {
+	query := `SELECT DISTINCT r.id, r.name, r.type, r.created_by, r.created_at
+			  FROM rooms r
+			  INNER JOIN room_users ru ON ru.room_id = r.id
+			  WHERE ru.user_id = $1 AND r.type = 'group'
+			  ORDER BY r.created_at DESC`
+
+	rows, err := r.db.Query(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var rooms []models.Room
+	for rows.Next() {
+		var room models.Room
+		if err := rows.Scan(&room.ID, &room.Name, &room.Type, &room.CreatedBy, &room.CreatedAt); err != nil {
+			return nil, err
+		}
+		rooms = append(rooms, room)
+	}
+
+	return rooms, nil
+}
+
+func (r *RoomRepository) AddUserToGroup(ctx context.Context, roomID, userID string) error {
+	query := `INSERT INTO room_users (room_id, user_id) VALUES ($1, $2)`
+	_, err := r.db.Exec(ctx, query, roomID, userID)
+	return err
+}
+
+func (r *RoomRepository) RemoveUserFromGroup(ctx context.Context, roomID, userID string) error {
+	query := `DELETE FROM room_users WHERE room_id = $1 AND user_id = $2`
+	_, err := r.db.Exec(ctx, query, roomID, userID)
+	return err
+}
