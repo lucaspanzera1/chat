@@ -1,0 +1,110 @@
+package client
+
+import (
+	"encoding/json"
+	"log"
+	"time"
+
+	"github.com/google/uuid"
+	"github.com/gorilla/websocket"
+	"github.com/lucaspanzera1/chat/internal/models"
+)
+
+const (
+	writeWait      = 10 * time.Second
+	pongWait       = 60 * time.Second
+	pingPeriod     = (pongWait * 9) / 10
+	maxMessageSize = 512
+)
+
+type Hub interface {
+	RegisterClient(c *Client)
+	UnregisterClient(c *Client)
+	BroadcastMessage(msg models.Message)
+}
+
+type Client struct {
+	Hub      Hub
+	Conn     *websocket.Conn
+	Send     chan models.Message
+	Username string
+}
+
+func NewClient(hub Hub, conn *websocket.Conn, username string) *Client {
+	return &Client{
+		Hub:      hub,
+		Conn:     conn,
+		Send:     make(chan models.Message, 256),
+		Username: username,
+	}
+}
+
+func (c *Client) ReadPump(broadcast chan<- models.Message, unregister chan<- *Client) {
+	defer func() {
+		unregister <- c
+		c.Conn.Close()
+	}()
+
+	c.Conn.SetReadLimit(maxMessageSize)
+	c.Conn.SetReadDeadline(time.Now().Add(pongWait))
+	c.Conn.SetPongHandler(func(string) error {
+		c.Conn.SetReadDeadline(time.Now().Add(pongWait))
+		return nil
+	})
+
+	for {
+		_, data, err := c.Conn.ReadMessage()
+		if err != nil {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				log.Printf("error: %v", err)
+			}
+			break
+		}
+
+		var incoming struct {
+			Content string `json:"content"`
+		}
+		if err := json.Unmarshal(data, &incoming); err != nil {
+			log.Printf("error unmarshaling: %v", err)
+			continue
+		}
+
+		msg := models.Message{
+			ID:        uuid.New().String(),
+			Username:  c.Username,
+			Content:   incoming.Content,
+			Timestamp: time.Now(),
+			Type:      "message",
+		}
+		broadcast <- msg
+	}
+}
+
+func (c *Client) WritePump() {
+	ticker := time.NewTicker(pingPeriod)
+	defer func() {
+		ticker.Stop()
+		c.Conn.Close()
+	}()
+
+	for {
+		select {
+		case message, ok := <-c.Send:
+			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if !ok {
+				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
+				return
+			}
+
+			if err := c.Conn.WriteJSON(message); err != nil {
+				return
+			}
+
+		case <-ticker.C:
+			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := c.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				return
+			}
+		}
+	}
+}

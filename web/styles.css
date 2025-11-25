@@ -1,0 +1,421 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@100;400;700&family=Inter:wght@300;400;600&display=swap');
+
+:root {
+    --bg-color: #050505;
+    --card-bg: #0a0a0a;
+    --text-primary: #e5e5e5;
+    --text-secondary: #888888;
+    --border-color: #222222;
+    --accent-color: #ffffff;
+    --dither-color: #222222;
+}
+
+.retro-theme {
+    --bg-color: #050505;
+    --card-bg: #0a0c0a;
+    --text-primary: #4ade80;
+    --text-secondary: #15803d;
+    --border-color: #14532d;
+    --accent-color: #4ade80;
+    --dither-color: #052e16;
+}
+
+.retro-theme ::selection {
+    background: #00ff41;
+    color: #000000;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    overflow-x: hidden;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.font-mono {
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* Dithering Effect */
+.dither-bg {
+    background-image: radial-gradient(var(--dither-color) 1px, transparent 1px);
+    background-size: 4px 4px;
+}
+
+.dither-overlay {
+    position: relative;
+}
+
+.dither-overlay::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+    background-size: 3px 3px;
+    pointer-events: none;
+    opacity: 0.5;
+    z-index: 10;
+}
+
+/* Bento Grid Layout */
+.bento-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    /* 2 columns on mobile */
+    gap: 0.75rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1rem;
+}
+
+@media (min-width: 768px) {
+    .bento-grid {
+        grid-template-columns: repeat(4, 1fr);
+        /* 4 columns on desktop */
+        gap: 1rem;
+        grid-auto-rows: minmax(180px, auto);
+    }
+}
+
+/* Card Styles */
+.bento-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 1.25rem;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    display: flex;
+    flex-direction: column;
+}
+
+.bento-card:hover {
+    border-color: var(--text-secondary);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+}
+
+/* Grid Spans - Mobile First */
+.col-span-1 {
+    grid-column: span 1;
+}
+
+.col-span-2 {
+    grid-column: span 2;
+}
+
+.col-span-3 {
+    grid-column: span 2;
+}
+
+/* Max 2 on mobile */
+.col-span-4 {
+    grid-column: span 2;
+}
+
+/* Max 2 on mobile */
+
+.row-span-1 {
+    grid-row: span 1;
+}
+
+.row-span-2 {
+    grid-row: span 1;
+}
+
+/* Reset row span on mobile for flow */
+
+/* Desktop Overrides */
+@media (min-width: 768px) {
+    .md\:col-span-1 {
+        grid-column: span 1;
+    }
+
+    .md\:col-span-2 {
+        grid-column: span 2;
+    }
+
+    .md\:col-span-3 {
+        grid-column: span 3;
+    }
+
+    .md\:col-span-4 {
+        grid-column: span 4;
+    }
+
+    .md\:row-span-1 {
+        grid-row: span 1;
+    }
+
+    .md\:row-span-2 {
+        grid-row: span 2;
+    }
+}
+
+/* Typography & Elements */
+h1,
+h2,
+h3 {
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: -0.03em;
+}
+
+.text-xs-custom {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-secondary);
+}
+
+.glitch-text {
+    position: relative;
+}
+
+.glitch-text::before,
+.glitch-text::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.glitch-text::before {
+    left: 2px;
+    text-shadow: -1px 0 #ff00c1;
+    clip: rect(44px, 450px, 56px, 0);
+    animation: glitch-anim 5s infinite linear alternate-reverse;
+}
+
+.glitch-text::after {
+    left: -2px;
+    text-shadow: -1px 0 #00fff9;
+    clip: rect(44px, 450px, 56px, 0);
+    animation: glitch-anim2 5s infinite linear alternate-reverse;
+}
+
+@keyframes glitch-anim {
+    0% {
+        clip: rect(14px, 9999px, 127px, 0);
+    }
+
+    5% {
+        clip: rect(34px, 9999px, 4px, 0);
+    }
+
+    10% {
+        clip: rect(96px, 9999px, 109px, 0);
+    }
+
+    15% {
+        clip: rect(6px, 9999px, 66px, 0);
+    }
+
+    20% {
+        clip: rect(65px, 9999px, 39px, 0);
+    }
+
+    25% {
+        clip: rect(89px, 9999px, 2px, 0);
+    }
+
+    30% {
+        clip: rect(3px, 9999px, 93px, 0);
+    }
+
+    35% {
+        clip: rect(82px, 9999px, 1px, 0);
+    }
+
+    40% {
+        clip: rect(24px, 9999px, 120px, 0);
+    }
+
+    45% {
+        clip: rect(2px, 9999px, 123px, 0);
+    }
+
+    50% {
+        clip: rect(68px, 9999px, 11px, 0);
+    }
+
+    55% {
+        clip: rect(59px, 9999px, 129px, 0);
+    }
+
+    60% {
+        clip: rect(11px, 9999px, 19px, 0);
+    }
+
+    65% {
+        clip: rect(83px, 9999px, 106px, 0);
+    }
+
+    70% {
+        clip: rect(12px, 9999px, 23px, 0);
+    }
+
+    75% {
+        clip: rect(49px, 9999px, 2px, 0);
+    }
+
+    80% {
+        clip: rect(25px, 9999px, 11px, 0);
+    }
+
+    85% {
+        clip: rect(66px, 9999px, 37px, 0);
+    }
+
+    90% {
+        clip: rect(10px, 9999px, 114px, 0);
+    }
+
+    95% {
+        clip: rect(2px, 9999px, 84px, 0);
+    }
+
+    100% {
+        clip: rect(32px, 9999px, 128px, 0);
+    }
+}
+
+@keyframes glitch-anim2 {
+    0% {
+        clip: rect(129px, 9999px, 36px, 0);
+    }
+
+    5% {
+        clip: rect(36px, 9999px, 4px, 0);
+    }
+
+    10% {
+        clip: rect(85px, 9999px, 66px, 0);
+    }
+
+    15% {
+        clip: rect(91px, 9999px, 91px, 0);
+    }
+
+    20% {
+        clip: rect(148px, 9999px, 138px, 0);
+    }
+
+    25% {
+        clip: rect(38px, 9999px, 122px, 0);
+    }
+
+    30% {
+        clip: rect(69px, 9999px, 54px, 0);
+    }
+
+    35% {
+        clip: rect(98px, 9999px, 71px, 0);
+    }
+
+    40% {
+        clip: rect(146px, 9999px, 34px, 0);
+    }
+
+    45% {
+        clip: rect(134px, 9999px, 43px, 0);
+    }
+
+    50% {
+        clip: rect(102px, 9999px, 80px, 0);
+    }
+
+    55% {
+        clip: rect(119px, 9999px, 44px, 0);
+    }
+
+    60% {
+        clip: rect(106px, 9999px, 99px, 0);
+    }
+
+    65% {
+        clip: rect(141px, 9999px, 74px, 0);
+    }
+
+    70% {
+        clip: rect(20px, 9999px, 78px, 0);
+    }
+
+    75% {
+        clip: rect(133px, 9999px, 79px, 0);
+    }
+
+    80% {
+        clip: rect(78px, 9999px, 52px, 0);
+    }
+
+    85% {
+        clip: rect(35px, 9999px, 39px, 0);
+    }
+
+    90% {
+        clip: rect(67px, 9999px, 70px, 0);
+    }
+
+    95% {
+        clip: rect(71px, 9999px, 103px, 0);
+    }
+
+    100% {
+        clip: rect(83px, 9999px, 40px, 0);
+    }
+}
+
+/* Tech Scroll */
+.tech-scroll-container {
+    mask-image: linear-gradient(to right, transparent, black 10%, black 90%, transparent);
+}
+
+.tech-icon {
+    filter: grayscale(100%) brightness(1.5);
+    opacity: 0.7;
+    transition: all 0.3s;
+}
+
+.tech-icon:hover {
+    opacity: 1;
+    filter: grayscale(0%) brightness(1.2);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-color);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}
+
+/* Scanline Effect */
+.scanlines {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0) 50%, rgba(0, 0, 0, 0.1) 50%, rgba(0, 0, 0, 0.1));
+    background-size: 100% 4px;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.3;
+}

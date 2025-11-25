@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CHAT //</title>
+    <link rel="icon" type="image/png" href="https://em-content.zobj.net/source/apple/114/speech-balloon_1f4ac.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'cyber-bg': 'var(--bg-color)',
+                        'cyber-card': 'var(--card-bg)',
+                        'cyber-text': 'var(--text-primary)',
+                        'cyber-dim': 'var(--text-secondary)',
+                        'cyber-border': 'var(--border-color)',
+                    },
+                    screens: {
+                        'xs': '480px',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="min-h-screen dither-bg dither-overlay selection:bg-white selection:text-black font-mono overflow-hidden">
+
+    <div class="scanlines"></div>
+
+    <!-- Main Content -->
+    <main class="min-h-screen flex items-center justify-center p-4">
+
+        <!-- Login Section -->
+        <div id="login" class="bento-card w-full max-w-md p-8 flex flex-col gap-6">
+            <div class="flex justify-between items-start">
+                <div class="flex items-center gap-2">
+                    <div class="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+                    <span class="text-xs-custom">WAITING FOR AUTH</span>
+                </div>
+                <span class="text-xs-custom opacity-50">PORT: 8080</span>
+            </div>
+
+            <div class="text-center my-4">
+                <h1 class="text-3xl font-bold mb-2 glitch-text" data-text="LOGIN">LOGIN</h1>
+                <p class="text-cyber-dim text-sm">> Insira sua identificação para prosseguir.</p>
+            </div>
+
+            <div class="flex flex-col gap-4">
+                <input type="text" id="username" placeholder="USERNAME..."
+                    class="w-full bg-cyber-bg border border-cyber-border p-3 text-cyber-text focus:outline-none focus:border-cyber-dim transition-colors placeholder-cyber-dim/50 uppercase tracking-widest text-sm"
+                    onkeypress="if(event.key==='Enter')connect()">
+
+                <button onclick="connect()"
+                    class="w-full text-center text-xs border border-cyber-border px-4 py-3 hover:bg-white hover:text-black transition-colors tracking-[0.2em] font-bold">
+                    [ CONNECT ]
+                </button>
+            </div>
+
+            <div class="mt-auto pt-4 text-center">
+                <a href="index.html"
+                    class="text-xs-custom hover:text-white transition-colors border-b border-transparent hover:border-cyber-dim pb-0.5">
+                    < BACK TO SYSTEM </a>
+            </div>
+        </div>
+
+        <!-- Chat Section -->
+        <div id="chat" class="hidden bento-card w-full max-w-4xl h-[80vh] flex-col relative">
+            <!-- Header -->
+            <div class="flex justify-between items-center border-b border-cyber-border pb-4 mb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <div>
+                        <h2 class="text-sm font-bold tracking-wider">SECURE CHANNEL</h2>
+                        <p class="text-[10px] text-cyber-dim font-mono">ENCRYPTED // <span id="current-user"
+                                class="text-cyber-text">GUEST</span></p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-4">
+                    <span class="text-xs-custom hidden sm:inline">STATUS: CONNECTED</span>
+                    <button onclick="location.reload()" class="text-xs-custom hover:text-red-500 transition-colors">[
+                        DISCONNECT ]</button>
+                </div>
+            </div>
+
+            <!-- Messages Area -->
+            <div id="messages" class="flex-1 overflow-y-auto space-y-4 pr-2 mb-4 font-mono text-sm scrollbar-thin">
+                <!-- Messages will be injected here -->
+                <div class="text-center py-4">
+                    <span class="text-xs text-cyber-dim border border-cyber-border px-2 py-1 bg-cyber-bg/50">SYSTEM
+                        INITIALIZED</span>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="mt-auto pt-4 border-t border-cyber-border">
+                <div class="flex gap-2">
+                    <span class="py-3 text-cyber-dim select-none">></span>
+                    <input type="text" id="message" placeholder="ENTER MESSAGE..."
+                        class="flex-1 bg-transparent border-none text-cyber-text focus:outline-none placeholder-cyber-dim/50"
+                        onkeypress="if(event.key==='Enter')sendMessage()">
+                    <button onclick="sendMessage()"
+                        class="text-xs border border-cyber-border px-4 hover:bg-white hover:text-black transition-colors tracking-widest">
+                        SEND
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // Initialize Theme from LocalStorage
+        if (localStorage.getItem('theme') === 'retro') {
+            document.body.classList.add('retro-theme');
+        }
+
+        let ws;
+        let currentUser = '';
+
+        function connect() {
+            const usernameInput = document.getElementById('username');
+            const username = usernameInput.value.trim();
+            if (!username) {
+                usernameInput.classList.add('border-red-500');
+                setTimeout(() => usernameInput.classList.remove('border-red-500'), 500);
+                return;
+            }
+
+            currentUser = username;
+            document.getElementById('current-user').innerText = username.toUpperCase();
+
+            // In a real scenario, this would connect to the actual WebSocket
+            // For demo purposes/static file, we'll simulate the connection
+            try {
+                ws = new WebSocket(`ws://localhost:8080/ws?username=${encodeURIComponent(username)}`);
+
+                ws.onopen = () => {
+                    transitionToChat();
+                };
+
+                ws.onmessage = (event) => {
+                    const msg = JSON.parse(event.data);
+                    addMessage(msg);
+                };
+
+                ws.onclose = () => {
+                    alert('CONNECTION LOST');
+                    location.reload();
+                };
+
+                ws.onerror = (err) => {
+                    console.log('WebSocket error, falling back to demo mode for UI check', err);
+                    // Fallback for UI testing if server isn't running
+                    transitionToChat();
+                    addMessage({ type: 'system', content: 'Connected to local interface (Demo Mode)' });
+                }
+
+            } catch (e) {
+                console.error(e);
+                transitionToChat(); // Allow UI preview even without backend
+            }
+        }
+
+        function transitionToChat() {
+            document.getElementById('login').style.display = 'none';
+            const chat = document.getElementById('chat');
+            chat.classList.remove('hidden');
+            chat.classList.add('flex');
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('message');
+            const content = input.value.trim();
+            if (!content) return;
+
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ content }));
+            } else {
+                // Demo mode echo
+                addMessage({ username: currentUser, content: content, type: 'message', timestamp: new Date() });
+            }
+
+            input.value = '';
+            input.focus();
+        }
+
+        function addMessage(msg) {
+            const messagesDiv = document.getElementById('messages');
+            const div = document.createElement('div');
+            const isMe = msg.username === currentUser;
+            const time = new Date(msg.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+            if (msg.type === 'system') {
+                div.className = 'flex justify-center my-2';
+                div.innerHTML = `<span class="text-xs text-cyber-dim border border-cyber-border px-2 py-1 bg-cyber-bg/50">${msg.content}</span>`;
+            } else {
+                div.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'} animate-fade-in`;
+                div.innerHTML = `
+                    <div class="flex items-baseline gap-2 mb-1">
+                        <span class="text-xs font-bold ${isMe ? 'text-green-500' : 'text-blue-400'}">${msg.username}</span>
+                        <span class="text-[10px] text-cyber-dim">${time}</span>
+                    </div>
+                    <div class="max-w-[80%] p-3 rounded-sm border ${isMe ? 'border-green-500/30 bg-green-500/5' : 'border-cyber-border bg-cyber-card'}">
+                        <p class="leading-relaxed break-words">${msg.content}</p>
+                    </div>
+                `;
+            }
+
+            messagesDiv.appendChild(div);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+    </script>
+</body>
+
+</html>
