@@ -100,7 +100,10 @@ func (r *RoomRepository) GetUserRooms(ctx context.Context, userID string) ([]mod
 }
 
 func (r *RoomRepository) GetAllUsers(ctx context.Context, excludeUserID string) ([]models.User, error) {
-	query := `SELECT id, username, email FROM users WHERE id != $1 ORDER BY username`
+	query := `SELECT id, username, email, COALESCE(is_online, FALSE), last_seen 
+			  FROM users 
+			  WHERE id != $1 
+			  ORDER BY is_online DESC, username`
 
 	rows, err := r.db.Query(ctx, query, excludeUserID)
 	if err != nil {
@@ -111,7 +114,7 @@ func (r *RoomRepository) GetAllUsers(ctx context.Context, excludeUserID string) 
 	var users []models.User
 	for rows.Next() {
 		var user models.User
-		if err := rows.Scan(&user.ID, &user.Username, &user.Email); err != nil {
+		if err := rows.Scan(&user.ID, &user.Username, &user.Email, &user.IsOnline, &user.LastSeen); err != nil {
 			return nil, err
 		}
 		users = append(users, user)
@@ -140,10 +143,8 @@ func (r *RoomRepository) CreateGroup(ctx context.Context, name string, creatorID
 		return nil, err
 	}
 
-	// Adicionar criador ao grupo
 	allUserIDs := append([]string{creatorID}, userIDs...)
 
-	// Inserir todos os membros
 	for _, userID := range allUserIDs {
 		insertUser := `INSERT INTO room_users (room_id, user_id) VALUES ($1, $2)`
 		if _, err := r.db.Exec(ctx, insertUser, roomID, userID); err != nil {

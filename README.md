@@ -2,7 +2,7 @@
 
 Um chat em tempo real construído com Go, WebSockets e PostgreSQL com autenticação JWT e mensagens privadas.
 
-![Chat](git/print.png)
+![ChatPreview](git/preview.gif)
 
 ## 🏗️ Arquitetura
 
@@ -29,6 +29,8 @@ Um chat em tempo real construído com Go, WebSockets e PostgreSQL com autentica�
 │     └──────────┘    └──────────┘    └──────────┘            │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+![Chat](git/print.png)
 
 ## ✨ Features
 
@@ -271,9 +273,9 @@ Camada de acesso a dados:
 - [x] Salas privadas (DMs)
 - [x] Notificações de mensagens não lidas
 - [x] Grupos de chat (3+ usuários)
+- [x] Status online/offline persistente
 - [ ] Envio de arquivos/imagens
 - [ ] Emojis e reações
-- [ ] Status online/offline persistente
 - [ ] Deploy com Docker (compose completo)
 - [ ] Testes unitários e de integração
 
@@ -284,18 +286,3 @@ DATABASE_URL=postgres://user:pass@localhost:5432/db?sslmode=disable&timezone=Ame
 SERVER_PORT=8080
 JWT_SECRET=seu-secret-super-seguro-mude-em-producao
 ```
-
-## 📝 Licença
-
-MIT License
-
-## 👤 Autor
-
-**Lucas Panzera**
-
-- GitHub: [@lucaspanzera1](https://github.com/lucaspanzera1)
-
----
-
-⭐ Se este projeto foi útil, considere dar uma estrela!
-

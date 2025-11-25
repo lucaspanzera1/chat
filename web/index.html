@@ -268,13 +268,17 @@
                 
                 const usersList = document.getElementById('usersList');
                 usersList.innerHTML = users.map(u => {
-                    // Criar ID único para a sala (será obtido ao clicar)
-                    const tempRoomId = `temp-${u.id}`;
+                    const statusColor = u.isOnline ? 'bg-green-500' : 'bg-gray-500';
+                    const statusTitle = u.isOnline ? 'Online' : formatLastSeen(u.lastSeen);
                     return `
                         <button onclick="startPrivateChat('${u.id}', '${u.username}')" 
                                 id="user-${u.id}"
-                                class="w-full text-left text-xs p-2 hover:bg-cyber-card transition-colors relative flex items-center justify-between">
-                            <span>@ ${u.username}</span>
+                                class="w-full text-left text-xs p-2 hover:bg-cyber-card transition-colors relative flex items-center justify-between"
+                                title="${statusTitle}">
+                            <div class="flex items-center gap-2">
+                                <span class="w-2 h-2 ${statusColor} rounded-full ${u.isOnline ? 'animate-pulse' : ''}"></span>
+                                <span>@ ${u.username}</span>
+                            </div>
                             <span id="badge-temp-${u.id}" class="hidden bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full animate-pulse">0</span>
                         </button>
                     `;
@@ -283,6 +287,27 @@
                 console.error('Erro ao carregar usuários:', err);
             }
         }
+
+        function formatLastSeen(lastSeen) {
+            if (!lastSeen) return 'Nunca visto';
+            
+            const date = new Date(lastSeen);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMs / 3600000);
+            const diffDays = Math.floor(diffMs / 86400000);
+
+            if (diffMins < 1) return 'Visto agora';
+            if (diffMins < 60) return `Visto há ${diffMins} min`;
+            if (diffHours < 24) return `Visto há ${diffHours}h`;
+            if (diffDays < 7) return `Visto há ${diffDays} dias`;
+            
+            return `Visto em ${date.toLocaleDateString('pt-BR')}`;
+        }
+
+        // Atualizar lista de usuários a cada 30 segundos
+        setInterval(loadUsers, 30000);
 
         async function startPrivateChat(otherUserID, username) {
             try {
@@ -401,15 +426,25 @@
             const div = document.createElement('div');
             const isMe = msg.username === currentUser;
             
-            // Converter timestamp UTC para horário de Brasília
+            // Converter timestamp para horário de Brasília
             let time = '';
-            if (msg.timestamp) {
-                // Criar data a partir do timestamp UTC
-                let date = new Date(msg.timestamp);
-                
-                // Se não termina com Z, adicionar para indicar UTC
-                if (!msg.timestamp.endsWith('Z') && !msg.timestamp.includes('+')) {
-                    date = new Date(msg.timestamp + 'Z');
+            try {
+                let date;
+                if (msg.timestamp) {
+                    // Tentar parse direto
+                    date = new Date(msg.timestamp);
+                    
+                    // Se for inválido, tentar adicionar Z
+                    if (isNaN(date.getTime())) {
+                        date = new Date(msg.timestamp + 'Z');
+                    }
+                    
+                    // Se ainda for inválido, usar hora atual
+                    if (isNaN(date.getTime())) {
+                        date = new Date();
+                    }
+                } else {
+                    date = new Date();
                 }
                 
                 time = date.toLocaleTimeString('pt-BR', { 
@@ -417,7 +452,8 @@
                     minute: '2-digit',
                     timeZone: 'America/Sao_Paulo'
                 });
-            } else {
+            } catch (e) {
+                console.error('Erro ao parsear timestamp:', e);
                 time = new Date().toLocaleTimeString('pt-BR', { 
                     hour: '2-digit', 
                     minute: '2-digit',

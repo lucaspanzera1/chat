@@ -75,9 +75,17 @@ func (wsh *WSHandler) ServeWS(w http.ResponseWriter, r *http.Request) {
 		RoomID:   roomID,
 	}
 
+	if err := wsh.userRepo.SetOnline(context.Background(), user.ID); err != nil {
+		log.Printf("Erro ao marcar usuário online: %v", err)
+	}
+
 	wsh.hub.Register <- c
 
 	unregisterFunc := func(client *client.Client) {
+
+		if err := wsh.userRepo.SetOffline(context.Background(), client.UserID); err != nil {
+			log.Printf("Erro ao marcar usuário offline: %v", err)
+		}
 		wsh.hub.Unregister <- client
 	}
 

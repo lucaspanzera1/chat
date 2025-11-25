@@ -40,6 +40,9 @@ func RunMigrations() error {
 		`CREATE INDEX IF NOT EXISTS idx_messages_room_id ON messages(room_id)`,
 		`INSERT INTO rooms (id, name, type) VALUES ('00000000-0000-0000-0000-000000000001', 'General', 'general') ON CONFLICT DO NOTHING`,
 		`ALTER TABLE rooms ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES users(id)`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_online BOOLEAN DEFAULT FALSE`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen TIMESTAMP DEFAULT NOW()`,
+		`CREATE INDEX IF NOT EXISTS idx_users_is_online ON users(is_online)`,
 	}
 
 	for _, query := range queries {

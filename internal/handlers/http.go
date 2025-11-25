@@ -94,7 +94,7 @@ func (h *HTTPHandler) GetUsers(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	users, err := h.roomRepo.GetAllUsers(r.Context(), claims.UserID)
+	users, err := h.userRepo.GetAllWithStatus(r.Context(), claims.UserID)
 	if err != nil {
 		http.Error(w, "Erro ao buscar usuários", http.StatusInternalServerError)
 		return
