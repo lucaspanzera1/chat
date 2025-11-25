@@ -7,7 +7,7 @@
     <title>CHAT //</title>
     <link rel="icon" type="image/png" href="https://em-content.zobj.net/source/apple/114/speech-balloon_1f4ac.png">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://www.lucaspanzera.com/style.css">
     <script>
         tailwind.config = {
             theme: {
@@ -32,10 +32,8 @@
 
     <div class="scanlines"></div>
 
-    <!-- Main Content -->
     <main class="min-h-screen flex items-center justify-center p-4">
 
-        <!-- Login Section -->
         <div id="login" class="bento-card w-full max-w-md p-8 flex flex-col gap-6">
             <div class="flex justify-between items-start">
                 <div class="flex items-center gap-2">
@@ -68,9 +66,7 @@
             </div>
         </div>
 
-        <!-- Chat Section -->
         <div id="chat" class="hidden bento-card w-full max-w-4xl h-[80vh] flex-col relative">
-            <!-- Header -->
             <div class="flex justify-between items-center border-b border-cyber-border pb-4 mb-4">
                 <div class="flex items-center gap-3">
                     <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
@@ -81,22 +77,22 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-4">
+                    <span class="text-xs-custom hidden sm:inline">
+                        <span id="online-count" class="text-green-500">0</span> ONLINE
+                    </span>
                     <span class="text-xs-custom hidden sm:inline">STATUS: CONNECTED</span>
                     <button onclick="location.reload()" class="text-xs-custom hover:text-red-500 transition-colors">[
                         DISCONNECT ]</button>
                 </div>
             </div>
 
-            <!-- Messages Area -->
             <div id="messages" class="flex-1 overflow-y-auto space-y-4 pr-2 mb-4 font-mono text-sm scrollbar-thin">
-                <!-- Messages will be injected here -->
                 <div class="text-center py-4">
                     <span class="text-xs text-cyber-dim border border-cyber-border px-2 py-1 bg-cyber-bg/50">SYSTEM
                         INITIALIZED</span>
                 </div>
             </div>
 
-            <!-- Input Area -->
             <div class="mt-auto pt-4 border-t border-cyber-border">
                 <div class="flex gap-2">
                     <span class="py-3 text-cyber-dim select-none">></span>
@@ -109,8 +105,24 @@
                     </button>
                 </div>
             </div>
+            <div
+                class="mt-4 bento-card col-span-2 md:col-span-4 md:row-span-1 flex flex-col md:flex-row items-center justify-between py-4 gap-4 text-center md:text-left">
+                <div
+                    class="flex flex-wrap justify-center md:justify-start gap-3 sm:gap-4 text-xs-custom text-cyber-dim font-mono">
+                    <span>STATUS: <span class="text-green-500">OK</span></span>
+                    <span class="hidden sm:inline text-cyber-border">|</span>
+                    <span>TIME: <span id="uptime" class="text-cyber-text">00:00:00</span></span>
+                    <span class="hidden sm:inline text-cyber-border">|</span>
+                    <span>KERNEL: <span class="text-cyber-text">6.8.0-LTS</span></span>
+                    <span class="hidden sm:inline text-cyber-border">|</span>
+                    <span>SHELL: <span class="text-cyber-text">ZSH</span></span>
+                </div>
+                <div class="text-xs-custom text-cyber-dim whitespace-nowrap">
+                    POWERED BY <a href="https://www.stelestial.app" target="_blank"
+                        class="hover:text-white underline decoration-dotted">STELESTIAL</a>
+                </div>
+            </div>
         </div>
-
     </main>
 
     <script>
@@ -134,13 +146,12 @@
             currentUser = username;
             document.getElementById('current-user').innerText = username.toUpperCase();
 
-            // In a real scenario, this would connect to the actual WebSocket
-            // For demo purposes/static file, we'll simulate the connection
             try {
                 ws = new WebSocket(`ws://localhost:8080/ws?username=${encodeURIComponent(username)}`);
 
                 ws.onopen = () => {
                     transitionToChat();
+                    loadHistory(); // Carregar histórico ao conectar
                 };
 
                 ws.onmessage = (event) => {
@@ -155,15 +166,37 @@
 
                 ws.onerror = (err) => {
                     console.log('WebSocket error, falling back to demo mode for UI check', err);
-                    // Fallback for UI testing if server isn't running
                     transitionToChat();
-                    addMessage({ type: 'system', content: 'Connected to local interface (Demo Mode)' });
+                    loadHistory(); // Tentar carregar histórico mesmo em modo demo
                 }
 
             } catch (e) {
                 console.error(e);
-                transitionToChat(); // Allow UI preview even without backend
+                transitionToChat();
             }
+        }
+
+        function loadHistory() {
+            fetch('/api/messages?limit=50')
+                .then(response => response.json())
+                .then(messages => {
+                    if (messages && messages.length > 0) {
+                        // Limpar mensagem de inicialização
+                        const messagesDiv = document.getElementById('messages');
+                        messagesDiv.innerHTML = '';
+                        
+                        // Adicionar mensagens do histórico
+                        messages.forEach(msg => {
+                            addMessage(msg, true); // true = não fazer scroll automático
+                        });
+                        
+                        // Scroll para o final após carregar tudo
+                        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                    }
+                })
+                .catch(err => {
+                    console.error('Erro ao carregar histórico:', err);
+                });
         }
 
         function transitionToChat() {
@@ -189,13 +222,23 @@
             input.focus();
         }
 
-        function addMessage(msg) {
+        function addMessage(msg, skipScroll = false) {
+            // Atualizar contagem se presente
+            if (msg.onlineCount !== undefined) {
+                document.getElementById('online-count').innerText = msg.onlineCount;
+            }
+
+            // Se for apenas mensagem de contagem, não adicionar ao chat
+            if (msg.type === 'count') {
+                return;
+            }
+
             const messagesDiv = document.getElementById('messages');
             const div = document.createElement('div');
             const isMe = msg.username === currentUser;
             const time = new Date(msg.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-            if (msg.type === 'system') {
+            if (msg.type === 'system' || msg.type === 'join' || msg.type === 'leave') {
                 div.className = 'flex justify-center my-2';
                 div.innerHTML = `<span class="text-xs text-cyber-dim border border-cyber-border px-2 py-1 bg-cyber-bg/50">${msg.content}</span>`;
             } else {
@@ -212,8 +255,21 @@
             }
 
             messagesDiv.appendChild(div);
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            
+            if (!skipScroll) {
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
         }
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+            const uptimeElement = document.getElementById('uptime');
+            if (uptimeElement) {
+                uptimeElement.innerText = timeString;
+            }
+        }
+        setInterval(updateTime, 1000);
+        updateTime();
     </script>
 </body>
 

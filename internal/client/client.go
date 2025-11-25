@@ -1,6 +1,7 @@
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"time"
@@ -8,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/lucaspanzera1/chat/internal/models"
+	"github.com/lucaspanzera1/chat/internal/repository"
 )
 
 const (
@@ -17,20 +19,19 @@ const (
 	maxMessageSize = 512
 )
 
-type Hub interface {
-	RegisterClient(c *Client)
-	UnregisterClient(c *Client)
-	BroadcastMessage(msg models.Message)
+type HubInterface interface {
+	BroadcastLeave(username string)
 }
 
 type Client struct {
-	Hub      Hub
+	Hub      HubInterface
 	Conn     *websocket.Conn
 	Send     chan models.Message
 	Username string
+	UserID   string
 }
 
-func NewClient(hub Hub, conn *websocket.Conn, username string) *Client {
+func NewClient(hub HubInterface, conn *websocket.Conn, username string) *Client {
 	return &Client{
 		Hub:      hub,
 		Conn:     conn,
@@ -39,8 +40,21 @@ func NewClient(hub Hub, conn *websocket.Conn, username string) *Client {
 	}
 }
 
-func (c *Client) ReadPump(broadcast chan<- models.Message, unregister chan<- *Client) {
+func (c *Client) ReadPump(broadcast chan<- models.Message, unregister chan<- *Client, messageRepo *repository.MessageRepository) {
 	defer func() {
+		if c.Hub != nil {
+			c.Hub.BroadcastLeave(c.Username)
+		}
+
+		leaveMsg := models.Message{
+			ID:        uuid.New().String(),
+			Username:  "Sistema",
+			Content:   c.Username + " saiu do chat",
+			Timestamp: time.Now(),
+			Type:      "leave",
+		}
+		messageRepo.Create(context.Background(), &leaveMsg, c.UserID)
+
 		unregister <- c
 		c.Conn.Close()
 	}()
@@ -76,6 +90,11 @@ func (c *Client) ReadPump(broadcast chan<- models.Message, unregister chan<- *Cl
 			Timestamp: time.Now(),
 			Type:      "message",
 		}
+
+		if err := messageRepo.Create(context.Background(), &msg, c.UserID); err != nil {
+			log.Printf("Erro ao salvar mensagem: %v", err)
+		}
+
 		broadcast <- msg
 	}
 }
