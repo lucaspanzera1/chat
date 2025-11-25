@@ -37,6 +37,8 @@ Um chat em tempo real construído com Go, WebSockets e PostgreSQL com autentica�
 ### 🔐 Autenticação
 - ✅ Sistema de registro com username, email e senha
 - ✅ Login com JWT (token expira em 24h)
+- ✅ **Login com Google OAuth 2.0**
+- ✅ Vinculação automática de contas (email/senha + Google)
 - ✅ Hash de senhas com bcrypt
 - ✅ Validação de campos no frontend e backend
 
@@ -123,8 +125,7 @@ cd chat
 # Copie o arquivo de exemplo .env
 cp .env.example .env
 
-# Edite o .env e configure o JWT_SECRET
-# JWT_SECRET=seu-secret-super-seguro-aqui
+# Edite o .env e configure:
 
 # Inicie o PostgreSQL com Docker
 docker-compose up -d
@@ -213,6 +214,8 @@ require (
 #### Autenticação
 - `POST /api/register` - Registrar novo usuário
 - `POST /api/login` - Login e obter token JWT
+- `GET /api/auth/google` - Iniciar login com Google
+- `GET /api/auth/google/callback` - Callback do Google OAuth
 
 #### Chat
 - `GET /ws?token=JWT&roomId=UUID` - Conectar ao WebSocket
@@ -285,4 +288,7 @@ Camada de acesso a dados:
 DATABASE_URL=postgres://user:pass@localhost:5432/db?sslmode=disable&timezone=America/Sao_Paulo
 SERVER_PORT=8080
 JWT_SECRET=seu-secret-super-seguro-mude-em-producao
+GOOGLE_CLIENT_ID=seu-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=seu-client-secret
+GOOGLE_REDIRECT_URL=http://localhost:8080/api/auth/google/callback
 ```

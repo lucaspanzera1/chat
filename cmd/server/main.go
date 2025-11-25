@@ -51,6 +51,7 @@ func main() {
 	authHandler := handlers.NewAuthHandler(userRepo)
 	wsHandler := handlers.NewWSHandler(h, userRepo, messageRepo)
 	httpHandler := handlers.NewHTTPHandler(messageRepo, roomRepo, userRepo)
+	oauthHandler := handlers.NewOAuthHandler(userRepo)
 
 	http.HandleFunc("/api/register", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -92,6 +93,10 @@ func main() {
 
 	http.HandleFunc("/api/groups", httpHandler.GetUserGroups)
 	http.HandleFunc("/api/group/members", httpHandler.GetGroupMembers)
+
+	// Google OAuth routes
+	http.HandleFunc("/api/auth/google", oauthHandler.GoogleLogin)
+	http.HandleFunc("/api/auth/google/callback", oauthHandler.GoogleCallback)
 
 	fs := http.FileServer(http.Dir("web"))
 	http.Handle("/", fs)

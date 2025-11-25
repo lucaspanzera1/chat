@@ -43,6 +43,9 @@ func RunMigrations() error {
 		`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_online BOOLEAN DEFAULT FALSE`,
 		`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen TIMESTAMP DEFAULT NOW()`,
 		`CREATE INDEX IF NOT EXISTS idx_users_is_online ON users(is_online)`,
+		`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id VARCHAR(255) UNIQUE`,
+		`ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL`,
+		`CREATE INDEX IF NOT EXISTS idx_users_google_id ON users(google_id)`,
 	}
 
 	for _, query := range queries {

@@ -7,6 +7,7 @@ type User struct {
 	Username     string     `json:"username"`
 	Email        string     `json:"email"`
 	PasswordHash string     `json:"-"`
+	GoogleID     *string    `json:"googleId,omitempty"`
 	IsOnline     bool       `json:"isOnline"`
 	LastSeen     *time.Time `json:"lastSeen,omitempty"`
 	CreatedAt    time.Time  `json:"createdAt"`

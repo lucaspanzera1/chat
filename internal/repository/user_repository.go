@@ -134,3 +134,52 @@ func (r *UserRepository) GetAllWithStatus(ctx context.Context, excludeUserID str
 
 	return users, nil
 }
+
+func (r *UserRepository) GetByGoogleID(ctx context.Context, googleID string) (*models.User, error) {
+	user := &models.User{}
+	query := `SELECT id, username, email, google_id, created_at FROM users WHERE google_id = $1`
+
+	err := r.db.QueryRow(ctx, query, googleID).Scan(&user.ID, &user.Username, &user.Email, &user.GoogleID, &user.CreatedAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return user, nil
+}
+
+func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*models.User, error) {
+	user := &models.User{}
+	query := `SELECT id, username, email, password_hash, google_id, created_at FROM users WHERE email = $1`
+
+	err := r.db.QueryRow(ctx, query, email).Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash, &user.GoogleID, &user.CreatedAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return user, nil
+}
+
+func (r *UserRepository) CreateWithGoogle(ctx context.Context, username, email, googleID string) (*models.User, error) {
+	user := &models.User{}
+	query := `INSERT INTO users (username, email, google_id) 
+			  VALUES ($1, $2, $3) 
+			  RETURNING id, username, email, google_id, created_at`
+
+	err := r.db.QueryRow(ctx, query, username, email, googleID).
+		Scan(&user.ID, &user.Username, &user.Email, &user.GoogleID, &user.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
+func (r *UserRepository) LinkGoogleAccount(ctx context.Context, userID, googleID string) error {
+	query := `UPDATE users SET google_id = $1 WHERE id = $2`
+	_, err := r.db.Exec(ctx, query, googleID, userID)
+	return err
+}
