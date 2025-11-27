@@ -9,6 +9,7 @@ import (
 	"github.com/lucaspanzera1/chat/internal/auth"
 	"github.com/lucaspanzera1/chat/internal/models"
 	"github.com/lucaspanzera1/chat/internal/repository"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type HTTPHandler struct {
@@ -305,4 +306,111 @@ func (h *HTTPHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(user)
+}
+
+func (h *HTTPHandler) GetUserProfile(w http.ResponseWriter, r *http.Request) {
+	token := r.Header.Get("Authorization")
+	if token == "" {
+		http.Error(w, "Token não fornecido", http.StatusUnauthorized)
+		return
+	}
+
+	claims, err := auth.ValidateToken(token)
+	if err != nil {
+		http.Error(w, "Token inválido", http.StatusUnauthorized)
+		return
+	}
+
+	user, err := h.userRepo.GetByID(r.Context(), claims.UserID)
+	if err != nil || user == nil {
+		http.Error(w, "Usuário não encontrado", http.StatusNotFound)
+		return
+	}
+
+	// Buscar contagem de mensagens
+	messagesCount, err := h.messageRepo.GetUserMessageCount(r.Context(), claims.UserID)
+	if err != nil {
+		log.Printf("Erro ao buscar contagem de mensagens: %v", err)
+		messagesCount = 0
+	}
+
+	profile := struct {
+		*models.User
+		MessagesCount int `json:"messagesCount"`
+	}{
+		User:          user,
+		MessagesCount: messagesCount,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(profile)
+}
+
+func (h *HTTPHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
+	token := r.Header.Get("Authorization")
+	if token == "" {
+		http.Error(w, "Token não fornecido", http.StatusUnauthorized)
+		return
+	}
+
+	claims, err := auth.ValidateToken(token)
+	if err != nil {
+		http.Error(w, "Token inválido", http.StatusUnauthorized)
+		return
+	}
+
+	var req struct {
+		CurrentPassword string `json:"currentPassword"`
+		NewPassword     string `json:"newPassword"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Dados inválidos", http.StatusBadRequest)
+		return
+	}
+
+	if req.NewPassword == "" || req.CurrentPassword == "" {
+		http.Error(w, "Todos os campos são obrigatórios", http.StatusBadRequest)
+		return
+	}
+
+	if len(req.NewPassword) < 6 {
+		http.Error(w, "Nova senha deve ter no mínimo 6 caracteres", http.StatusBadRequest)
+		return
+	}
+
+	// Buscar usuário com senha
+	user, err := h.userRepo.GetByIDWithPassword(r.Context(), claims.UserID)
+	if err != nil || user == nil {
+		http.Error(w, "Usuário não encontrado", http.StatusNotFound)
+		return
+	}
+
+	// Verificar se é conta Google (não tem senha)
+	if user.GoogleID != nil && *user.GoogleID != "" {
+		http.Error(w, "Contas Google não podem alterar senha aqui", http.StatusBadRequest)
+		return
+	}
+
+	// Verificar senha atual
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.CurrentPassword)); err != nil {
+		http.Error(w, "Senha atual incorreta", http.StatusUnauthorized)
+		return
+	}
+
+	// Hash da nova senha
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		http.Error(w, "Erro ao processar senha", http.StatusInternalServerError)
+		return
+	}
+
+	// Atualizar senha
+	if err := h.userRepo.UpdatePassword(r.Context(), claims.UserID, string(hashedPassword)); err != nil {
+		http.Error(w, "Erro ao atualizar senha", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"message": "Senha atualizada com sucesso"})
 }

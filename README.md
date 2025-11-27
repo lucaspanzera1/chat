@@ -63,6 +63,7 @@ Um chat em tempo real construído com Go, WebSockets e PostgreSQL com autentica�
 - ✅ Notificações visuais com badges animados
 - ✅ Contador de mensagens não lidas no título da página
 - ✅ Indicador de status online em tempo real
+- ✅ **Página de perfil com edição de username e senha**
 - ✅ Responsivo para mobile e desktop
 
 ### ⏰ Timezone
@@ -216,6 +217,12 @@ require (
 - `POST /api/login` - Login e obter token JWT
 - `GET /api/auth/google` - Iniciar login com Google
 - `GET /api/auth/google/callback` - Callback do Google OAuth
+
+#### Usuário
+- `GET /api/user/me` - Buscar dados do usuário atual
+- `GET /api/user/profile` - Buscar perfil completo do usuário
+- `POST /api/user/username` - Atualizar username
+- `POST /api/user/password` - Alterar senha
 
 #### Chat
 - `GET /ws?token=JWT&roomId=UUID` - Conectar ao WebSocket

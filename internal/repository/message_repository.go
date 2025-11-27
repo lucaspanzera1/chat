@@ -90,3 +90,15 @@ func (r *MessageRepository) GetRecentByRoom(ctx context.Context, roomID string, 
 
 	return messages, nil
 }
+
+func (r *MessageRepository) GetUserMessageCount(ctx context.Context, userID string) (int, error) {
+	var count int
+	query := `SELECT COUNT(*) FROM messages WHERE user_id = $1`
+
+	err := r.db.QueryRow(ctx, query, userID).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}

@@ -106,6 +106,14 @@ func main() {
 	})
 
 	http.HandleFunc("/api/user/me", httpHandler.GetCurrentUser)
+	http.HandleFunc("/api/user/profile", httpHandler.GetUserProfile)
+	http.HandleFunc("/api/user/password", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		httpHandler.ChangePassword(w, r)
+	})
 
 	fs := http.FileServer(http.Dir("web"))
 	http.Handle("/", fs)

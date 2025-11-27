@@ -7,7 +7,7 @@
     <title>CHAT //</title>
     <link rel="icon" type="image/png" href="https://em-content.zobj.net/source/apple/114/speech-balloon_1f4ac.png">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://www.lucaspanzera.com/style.css">
+    <link rel="stylesheet" href="css/style.css">
     <script>
         tailwind.config = {
             theme: {
@@ -40,17 +40,19 @@
             <div class="w-64 border-r border-cyber-border flex flex-col overflow-y-auto">
                 <div class="p-4 border-b border-cyber-border">
                     <h3 class="text-xs font-bold tracking-wider mb-2">CHANNELS</h3>
-                    <button onclick="switchToGeneral()" id="generalBtn" 
-                            class="w-full text-left text-xs p-2 hover:bg-cyber-card transition-colors border border-cyber-border mb-2 relative flex items-center justify-between">
+                    <button onclick="switchToGeneral()" id="generalBtn"
+                        class="w-full text-left text-xs p-2 hover:bg-cyber-card transition-colors border border-cyber-border mb-2 relative flex items-center justify-between">
                         <span># GENERAL</span>
-                        <span id="generalBadge" class="hidden bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full animate-pulse">0</span>
+                        <span id="generalBadge"
+                            class="hidden bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full animate-pulse">0</span>
                     </button>
                 </div>
-                
+
                 <div class="p-4 border-b border-cyber-border">
                     <div class="flex justify-between items-center mb-2">
                         <h3 class="text-xs font-bold tracking-wider">GROUPS</h3>
-                        <button onclick="showCreateGroup()" class="text-xs hover:text-green-500 transition-colors">[ + ]</button>
+                        <button onclick="showCreateGroup()" class="text-xs hover:text-green-500 transition-colors">[ +
+                            ]</button>
                     </div>
                     <div id="groupsList" class="space-y-1"></div>
                 </div>
@@ -77,8 +79,7 @@
                             <span id="online-count" class="text-green-500">0</span> ONLINE
                         </span>
                         <span class="text-xs-custom hidden sm:inline">STATUS: CONNECTED</span>
-                        <button onclick="disconnect()"
-                            class="text-xs-custom hover:text-red-500 transition-colors">[
+                        <button onclick="disconnect()" class="text-xs-custom hover:text-red-500 transition-colors">[
                             DISCONNECT ]</button>
                     </div>
                 </div>
@@ -182,12 +183,12 @@
 
             ws.onmessage = (event) => {
                 const msg = JSON.parse(event.data);
-                
+
                 // Se a mensagem é de outra sala e não é do tipo count
                 if (msg.roomId && msg.roomId !== currentRoomID && msg.type !== 'count') {
                     incrementUnread(msg.roomId);
                 }
-                
+
                 addMessage(msg);
             };
 
@@ -221,7 +222,7 @@
             }
             unreadMessages[roomID]++;
             updateBadge(roomID, unreadMessages[roomID]);
-            
+
             // Atualizar título da página
             updatePageTitle();
         }
@@ -265,7 +266,7 @@
                     headers: { 'Authorization': token }
                 });
                 const users = await response.json();
-                
+
                 const usersList = document.getElementById('usersList');
                 usersList.innerHTML = users.map(u => {
                     const statusColor = u.isOnline ? 'bg-green-500' : 'bg-gray-500';
@@ -290,7 +291,7 @@
 
         function formatLastSeen(lastSeen) {
             if (!lastSeen) return 'Nunca visto';
-            
+
             const date = new Date(lastSeen);
             const now = new Date();
             const diffMs = now - date;
@@ -302,7 +303,7 @@
             if (diffMins < 60) return `Visto há ${diffMins} min`;
             if (diffHours < 24) return `Visto há ${diffHours}h`;
             if (diffDays < 7) return `Visto há ${diffDays} dias`;
-            
+
             return `Visto em ${date.toLocaleDateString('pt-BR')}`;
         }
 
@@ -312,44 +313,44 @@
         async function startPrivateChat(otherUserID, username) {
             try {
                 console.log('Iniciando chat privado com:', username, otherUserID);
-                
+
                 const response = await fetch('/api/room/private', {
                     method: 'POST',
-                    headers: { 
+                    headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': token 
+                        'Authorization': token
                     },
                     body: JSON.stringify({ otherUserId: otherUserID })
                 });
-                
+
                 if (!response.ok) {
                     const errorText = await response.text();
                     throw new Error(`Erro ${response.status}: ${errorText}`);
                 }
-                
+
                 const room = await response.json();
                 console.log('Sala criada:', room);
-                
+
                 // Atualizar o badge com o ID real da sala
                 const tempBadge = document.getElementById(`badge-temp-${otherUserID}`);
                 if (tempBadge) {
                     tempBadge.id = `badge-${room.id}`;
                 }
-                
+
                 currentRoomID = room.id;
                 currentRoomUser = username;
-                
+
                 // Resetar contador de não lidas desta sala
                 unreadMessages[room.id] = 0;
                 updateBadge(room.id, 0);
                 updatePageTitle();
-                
+
                 document.querySelector('h2').textContent = `DM: ${username}`;
-                
+
                 if (ws && ws.readyState === WebSocket.OPEN) {
                     ws.close();
                 }
-                
+
                 connectWebSocket();
             } catch (err) {
                 console.error('Erro ao criar sala privada:', err);
@@ -360,18 +361,18 @@
         function switchToGeneral() {
             currentRoomID = '00000000-0000-0000-0000-000000000001';
             currentRoomUser = null;
-            
+
             // Resetar contador de não lidas do General
             unreadMessages[currentRoomID] = 0;
             updateBadge(currentRoomID, 0);
             updatePageTitle();
-            
+
             document.querySelector('h2').textContent = 'SECURE CHANNEL';
-            
+
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.close();
             }
-            
+
             connectWebSocket();
         }
 
@@ -382,11 +383,11 @@
                     if (messages && messages.length > 0) {
                         const messagesDiv = document.getElementById('messages');
                         messagesDiv.innerHTML = '';
-                        
+
                         messages.forEach(msg => {
                             addMessage(msg, true);
                         });
-                        
+
                         messagesDiv.scrollTop = messagesDiv.scrollHeight;
                     }
                 })
@@ -425,7 +426,7 @@
             const messagesDiv = document.getElementById('messages');
             const div = document.createElement('div');
             const isMe = msg.username === currentUser;
-            
+
             // Converter timestamp para horário de Brasília
             let time = '';
             try {
@@ -441,16 +442,16 @@
                 } else {
                     date = new Date();
                 }
-                
-                time = date.toLocaleTimeString('pt-BR', { 
-                    hour: '2-digit', 
+
+                time = date.toLocaleTimeString('pt-BR', {
+                    hour: '2-digit',
                     minute: '2-digit',
                     timeZone: 'America/Sao_Paulo'
                 });
             } catch (e) {
                 console.error('Erro ao parsear timestamp:', e);
-                time = new Date().toLocaleTimeString('pt-BR', { 
-                    hour: '2-digit', 
+                time = new Date().toLocaleTimeString('pt-BR', {
+                    hour: '2-digit',
                     minute: '2-digit',
                     timeZone: 'America/Sao_Paulo'
                 });
@@ -481,7 +482,7 @@
             }
 
             messagesDiv.appendChild(div);
-            
+
             if (!skipScroll) {
                 messagesDiv.scrollTop = messagesDiv.scrollHeight;
             }
@@ -505,7 +506,7 @@
                     headers: { 'Authorization': token }
                 });
                 const groups = await response.json();
-                
+
                 const groupsList = document.getElementById('groupsList');
                 if (groups && groups.length > 0) {
                     groupsList.innerHTML = groups.map(g => `
@@ -541,7 +542,7 @@
                     headers: { 'Authorization': token }
                 });
                 const users = await response.json();
-                
+
                 const membersList = document.getElementById('groupMembersList');
                 membersList.innerHTML = users.map(u => `
                     <label class="flex items-center gap-2 cursor-pointer hover:bg-cyber-card p-2">
@@ -588,11 +589,11 @@
             try {
                 const response = await fetch('/api/group/create', {
                     method: 'POST',
-                    headers: { 
+                    headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': token 
+                        'Authorization': token
                     },
-                    body: JSON.stringify({ 
+                    body: JSON.stringify({
                         name: name,
                         userIds: Array.from(selectedMembers)
                     })
@@ -608,7 +609,7 @@
 
                 hideCreateGroup();
                 await loadGroups();
-                
+
                 // Entrar no grupo criado
                 switchToGroup(group.id, group.name);
             } catch (err) {
@@ -624,17 +625,17 @@
         function switchToGroup(groupId, groupName) {
             currentRoomID = groupId;
             currentRoomUser = null;
-            
+
             unreadMessages[groupId] = 0;
             updateBadge(groupId, 0);
             updatePageTitle();
-            
+
             document.querySelector('h2').textContent = `GROUP: ${groupName}`;
-            
+
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.close();
             }
-            
+
             connectWebSocket();
         }
 

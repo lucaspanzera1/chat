@@ -99,6 +99,26 @@ func (r *UserRepository) GetByID(ctx context.Context, id string) (*models.User, 
 	return user, nil
 }
 
+func (r *UserRepository) GetByIDWithPassword(ctx context.Context, id string) (*models.User, error) {
+	user := &models.User{}
+	query := `SELECT id, username, email, password_hash, google_id, avatar_url, created_at FROM users WHERE id = $1`
+
+	err := r.db.QueryRow(ctx, query, id).Scan(&user.ID, &user.Username, &user.Email, &user.PasswordHash, &user.GoogleID, &user.AvatarURL, &user.CreatedAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return user, nil
+}
+
+func (r *UserRepository) UpdatePassword(ctx context.Context, userID, hashedPassword string) error {
+	query := `UPDATE users SET password_hash = $1 WHERE id = $2`
+	_, err := r.db.Exec(ctx, query, hashedPassword, userID)
+	return err
+}
+
 func (r *UserRepository) SetOnline(ctx context.Context, userID string) error {
 	query := `UPDATE users SET is_online = TRUE, last_seen = NOW() WHERE id = $1`
 	_, err := r.db.Exec(ctx, query, userID)

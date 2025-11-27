@@ -7,7 +7,7 @@
     <title>SETUP // CHAT</title>
     <link rel="icon" type="image/png" href="https://em-content.zobj.net/source/apple/114/speech-balloon_1f4ac.png">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://www.lucaspanzera.com/style.css">
+    <link rel="stylesheet" href="css/style.css">
 </head>
 
 <body class="min-h-screen dither-bg dither-overlay selection:bg-white selection:text-black font-mono overflow-hidden">
@@ -23,9 +23,10 @@
             <!-- Avatar Preview -->
             <div class="flex justify-center">
                 <div class="relative">
-                    <img id="avatarPreview" src="" alt="Avatar" 
-                         class="w-24 h-24 rounded-full border-2 border-cyber-border object-cover">
-                    <div class="absolute bottom-0 right-0 w-6 h-6 bg-green-500 rounded-full border-2 border-cyber-bg"></div>
+                    <img id="avatarPreview" src="" alt="Avatar"
+                        class="w-24 h-24 rounded-full border-2 border-cyber-border object-cover">
+                    <div class="absolute bottom-0 right-0 w-6 h-6 bg-green-500 rounded-full border-2 border-cyber-bg">
+                    </div>
                 </div>
             </div>
 
@@ -38,16 +39,15 @@
                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-cyber-dim">@</span>
                     <input type="text" id="usernameInput" placeholder="USERNAME..."
                         class="w-full bg-cyber-bg border border-cyber-border p-3 pl-8 text-cyber-text focus:outline-none focus:border-cyber-dim transition-colors uppercase"
-                        maxlength="20"
-                        oninput="validateUsername()"
-                        onkeypress="if(event.key==='Enter')saveUsername()">
+                        maxlength="20" oninput="validateUsername()" onkeypress="if(event.key==='Enter')saveUsername()">
                 </div>
 
                 <div id="usernameHint" class="text-xs text-cyber-dim">
                     3-20 caracteres, letras, números e underscore
                 </div>
 
-                <div id="usernameError" class="text-red-500 text-xs hidden p-2 border border-red-500 bg-red-500/10"></div>
+                <div id="usernameError" class="text-red-500 text-xs hidden p-2 border border-red-500 bg-red-500/10">
+                </div>
 
                 <button onclick="saveUsername()" id="saveBtn" disabled
                     class="w-full text-center text-xs border border-cyber-border px-4 py-3 hover:bg-white hover:text-black transition-colors tracking-[0.2em] font-bold disabled:opacity-50 disabled:cursor-not-allowed">
@@ -80,12 +80,12 @@
             const hint = document.getElementById('usernameHint');
             const btn = document.getElementById('saveBtn');
             const error = document.getElementById('usernameError');
-            
+
             const username = input.value.trim();
             const isValid = /^[a-zA-Z0-9_]{3,20}$/.test(username);
-            
+
             error.classList.add('hidden');
-            
+
             if (username.length === 0) {
                 hint.textContent = '3-20 caracteres, letras, números e underscore';
                 hint.className = 'text-xs text-cyber-dim';
@@ -139,7 +139,7 @@
                 }
 
                 const data = await response.json();
-                
+
                 // Salvar dados e ir para o chat
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('user', JSON.stringify(data.user));

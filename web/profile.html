@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PROFILE // CHAT</title>
+    <link rel="icon" type="image/png" href="https://em-content.zobj.net/source/apple/114/speech-balloon_1f4ac.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body class="min-h-screen dither-bg dither-overlay selection:bg-white selection:text-black font-mono overflow-hidden">
+    <div class="scanlines"></div>
+
+    <main class="min-h-screen flex items-center justify-center p-4">
+        <div class="bento-card w-full max-w-2xl p-8 flex flex-col gap-6">
+            <!-- Header -->
+            <div class="flex justify-between items-center">
+                <h1 class="text-3xl font-bold glitch-text">PROFILE</h1>
+                <button onclick="goBack()" class="text-xs hover:text-red-500 transition-colors">[ ← BACK ]</button>
+            </div>
+
+            <!-- Profile Info -->
+            <div class="flex flex-col md:flex-row gap-6">
+                <!-- Avatar Section -->
+                <div class="flex flex-col items-center gap-4">
+                    <div class="relative">
+                        <img id="avatarImg" src="" alt="Avatar" 
+                             class="w-32 h-32 rounded-full border-2 border-cyber-border object-cover">
+                        <div id="statusIndicator" class="absolute bottom-2 right-2 w-6 h-6 rounded-full border-2 border-cyber-bg"></div>
+                    </div>
+                    <div class="text-center">
+                        <h2 id="usernameDisplay" class="text-xl font-bold"></h2>
+                        <p id="emailDisplay" class="text-xs text-cyber-dim"></p>
+                    </div>
+                </div>
+
+                <!-- Info Section -->
+                <div class="flex-1 space-y-4">
+                    <!-- Account Type -->
+                    <div class="p-4 border border-cyber-border bg-cyber-card rounded">
+                        <h3 class="text-sm font-bold mb-2">ACCOUNT TYPE</h3>
+                        <div class="flex items-center gap-2">
+                            <span id="accountType" class="text-xs"></span>
+                            <span id="googleIcon" class="hidden">
+                                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                                </svg>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Stats -->
+                    <div class="p-4 border border-cyber-border bg-cyber-card rounded">
+                        <h3 class="text-sm font-bold mb-2">STATISTICS</h3>
+                        <div class="grid grid-cols-2 gap-4 text-xs">
+                            <div>
+                                <span class="text-cyber-dim">Messages Sent:</span>
+                                <span id="messagesCount" class="block font-bold">0</span>
+                            </div>
+                            <div>
+                                <span class="text-cyber-dim">Member Since:</span>
+                                <span id="memberSince" class="block font-bold">-</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit Section -->
+            <div class="border-t border-cyber-border pt-6">
+                <h3 class="text-lg font-bold mb-4">EDIT PROFILE</h3>
+                
+                <div class="space-y-4">
+                    <!-- Username Edit -->
+                    <div>
+                        <label class="block text-xs font-bold mb-2">USERNAME</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 -translate-y-1/2 text-cyber-dim">@</span>
+                            <input type="text" id="usernameInput" 
+                                class="w-full bg-cyber-bg border border-cyber-border p-3 pl-8 text-cyber-text focus:outline-none focus:border-cyber-dim transition-colors uppercase"
+                                maxlength="20">
+                        </div>
+                        <button onclick="updateUsername()" id="usernameBtn" 
+                            class="mt-2 text-xs border border-cyber-border px-3 py-1 hover:bg-white hover:text-black transition-colors">
+                            [ UPDATE ]
+                        </button>
+                    </div>
+
+                    <!-- Password Change (only for non-Google accounts) -->
+                    <div id="passwordSection">
+                        <label class="block text-xs font-bold mb-2">CHANGE PASSWORD</label>
+                        <div class="space-y-2">
+                            <input type="password" id="currentPassword" placeholder="CURRENT PASSWORD..."
+                                class="w-full bg-cyber-bg border border-cyber-border p-3 text-cyber-text focus:outline-none focus:border-cyber-dim transition-colors">
+                            <input type="password" id="newPassword" placeholder="NEW PASSWORD..."
+                                class="w-full bg-cyber-bg border border-cyber-border p-3 text-cyber-text focus:outline-none focus:border-cyber-dim transition-colors">
+                            <input type="password" id="confirmPassword" placeholder="CONFIRM NEW PASSWORD..."
+                                class="w-full bg-cyber-bg border border-cyber-border p-3 text-cyber-text focus:outline-none focus:border-cyber-dim transition-colors">
+                        </div>
+                        <button onclick="changePassword()" id="passwordBtn" 
+                            class="mt-2 text-xs border border-cyber-border px-3 py-1 hover:bg-white hover:text-black transition-colors">
+                            [ CHANGE PASSWORD ]
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error Messages -->
+            <div id="errorMessage" class="text-red-500 text-xs hidden p-2 border border-red-500 bg-red-500/10"></div>
+            <div id="successMessage" class="text-green-500 text-xs hidden p-2 border border-green-500 bg-green-500/10"></div>
+        </div>
+    </main>
+
+    <script>
+        let userData = null;
+
+        // Verificar autenticação
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+        if (!token || !user.username) {
+            window.location.href = '/auth.html';
+        }
+
+        // Carregar dados do perfil
+        loadProfile();
+
+        function goBack() {
+            window.location.href = '/';
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            const successDiv = document.getElementById('successMessage');
+            errorDiv.textContent = '⚠ ' + message;
+            errorDiv.classList.remove('hidden');
+            successDiv.classList.add('hidden');
+            setTimeout(() => errorDiv.classList.add('hidden'), 5000);
+        }
+
+        function showSuccess(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            const successDiv = document.getElementById('successMessage');
+            successDiv.textContent = '✓ ' + message;
+            successDiv.classList.remove('hidden');
+            errorDiv.classList.add('hidden');
+            setTimeout(() => successDiv.classList.add('hidden'), 3000);
+        }
+
+        async function loadProfile() {
+            try {
+                const response = await fetch('/api/user/profile', {
+                    headers: { 'Authorization': token }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Erro ao carregar perfil');
+                }
+
+                userData = await response.json();
+                displayProfile(userData);
+            } catch (error) {
+                console.error('Erro ao carregar perfil:', error);
+                showError('Erro ao carregar perfil');
+            }
+        }
+
+        function displayProfile(data) {
+            // Avatar
+            const avatarUrl = data.avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(data.username)}&background=1a1a1a&color=fff&size=128`;
+            document.getElementById('avatarImg').src = avatarUrl;
+
+            // Status
+            const statusIndicator = document.getElementById('statusIndicator');
+            statusIndicator.className = 'absolute bottom-2 right-2 w-6 h-6 rounded-full border-2 border-cyber-bg';
+            if (data.isOnline) {
+                statusIndicator.classList.add('bg-green-500');
+            } else {
+                statusIndicator.classList.add('bg-gray-500');
+            }
+
+            // Info básica
+            document.getElementById('usernameDisplay').textContent = data.username;
+            document.getElementById('emailDisplay').textContent = data.email;
+            document.getElementById('usernameInput').value = data.username;
+
+            // Account type
+            const accountType = document.getElementById('accountType');
+            const googleIcon = document.getElementById('googleIcon');
+            const passwordSection = document.getElementById('passwordSection');
+
+            if (data.googleId) {
+                accountType.textContent = 'GOOGLE ACCOUNT';
+                googleIcon.classList.remove('hidden');
+                passwordSection.style.display = 'none';
+            } else {
+                accountType.textContent = 'LOCAL ACCOUNT';
+                googleIcon.classList.add('hidden');
+                passwordSection.style.display = 'block';
+            }
+
+            // Stats
+            document.getElementById('messagesCount').textContent = data.messagesCount || '0';
+            if (data.createdAt) {
+                const date = new Date(data.createdAt);
+                document.getElementById('memberSince').textContent = date.toLocaleDateString('pt-BR');
+            }
+        }
+
+        async function updateUsername() {
+            const newUsername = document.getElementById('usernameInput').value.trim().toUpperCase();
+            const btn = document.getElementById('usernameBtn');
+
+            if (!newUsername || newUsername === userData.username) {
+                return;
+            }
+
+            if (newUsername.length < 3 || newUsername.length > 20) {
+                showError('Username deve ter entre 3 e 20 caracteres');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = '[ UPDATING... ]';
+
+            try {
+                const response = await fetch('/api/user/username', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': token
+                    },
+                    body: JSON.stringify({ username: newUsername })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText);
+                }
+
+                const data = await response.json();
+                
+                // Atualizar localStorage
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                
+                userData = data.user;
+                displayProfile(userData);
+                showSuccess('Username atualizado com sucesso!');
+                
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '[ UPDATE ]';
+            }
+        }
+
+        async function changePassword() {
+            const currentPass = document.getElementById('currentPassword').value;
+            const newPass = document.getElementById('newPassword').value;
+            const confirmPass = document.getElementById('confirmPassword').value;
+            const btn = document.getElementById('passwordBtn');
+
+            if (!currentPass || !newPass || !confirmPass) {
+                showError('Todos os campos são obrigatórios');
+                return;
+            }
+
+            if (newPass !== confirmPass) {
+                showError('Nova senha e confirmação não coincidem');
+                return;
+            }
+
+            if (newPass.length < 6) {
+                showError('Nova senha deve ter no mínimo 6 caracteres');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = '[ CHANGING... ]';
+
+            try {
+                const response = await fetch('/api/user/password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': token
+                    },
+                    body: JSON.stringify({
+                        currentPassword: currentPass,
+                        newPassword: newPass
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText);
+                }
+
+                showSuccess('Senha alterada com sucesso!');
+                
+                // Limpar campos
+                document.getElementById('currentPassword').value = '';
+                document.getElementById('newPassword').value = '';
+                document.getElementById('confirmPassword').value = '';
+                
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '[ CHANGE PASSWORD ]';
+            }
+        }
+    </script>
+</body>
+
+</html>
